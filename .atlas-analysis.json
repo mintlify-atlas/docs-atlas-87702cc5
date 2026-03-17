@@ -1,0 +1,181 @@
+{
+  "projectType": "framework",
+  "projectName": "Civ7 Modding Tools",
+  "projectDescription": "A TypeScript monorepo providing an SDK, CLI, and documentation for programmatically creating Civilization VII mods with type-safe builders instead of manual XML editing.",
+  "theme": "palm",
+  "primaryColor": "#848c8e",
+  "lightColor": "#11161e",
+  "darkColor": "#cfd0d2",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Get Started",
+        "groups": [
+          {
+            "group": "Introduction",
+            "pages": ["introduction", "quickstart"]
+          },
+          {
+            "group": "Setup",
+            "pages": [
+              "setup/installation",
+              "setup/configuration",
+              "setup/game-data"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "SDK",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": ["sdk/overview", "sdk/core-concepts"]
+          },
+          {
+            "group": "Builders",
+            "pages": [
+              "sdk/builders/unit-builder",
+              "sdk/builders/civilization-builder",
+              "sdk/builders/constructible-builder",
+              "sdk/builders/progression-tree-builder",
+              "sdk/builders/modifier-builder",
+              "sdk/builders/tradition-builder",
+              "sdk/builders/unique-quarter-builder",
+              "sdk/builders/leader-unlock-builder",
+              "sdk/builders/import-file-builder"
+            ]
+          },
+          {
+            "group": "Low-Level API",
+            "pages": [
+              "sdk/low-level/nodes",
+              "sdk/low-level/xml-files",
+              "sdk/low-level/action-groups"
+            ]
+          },
+          {
+            "group": "Constants & Types",
+            "pages": [
+              "sdk/constants/overview",
+              "sdk/constants/units",
+              "sdk/constants/abilities-effects"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "CLI",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": ["cli/overview"]
+          },
+          {
+            "group": "Commands",
+            "pages": [
+              "cli/commands/data-crawl",
+              "cli/commands/data-explore",
+              "cli/commands/data-render",
+              "cli/commands/data-slice",
+              "cli/commands/data-zip",
+              "cli/commands/data-unzip",
+              "cli/commands/mod-git",
+              "cli/commands/docs"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": ["cli/configuration"]
+          }
+        ]
+      },
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Official Guides",
+            "pages": [
+              "guides/official/getting-started",
+              "guides/official/database-modding",
+              "guides/official/modifier-system",
+              "guides/official/modinfo-files",
+              "guides/official/narrative-events"
+            ]
+          },
+          {
+            "group": "Community Guides",
+            "pages": [
+              "guides/community/getting-started",
+              "guides/community/modding-architecture",
+              "guides/community/creating-civilizations",
+              "guides/community/creating-leaders",
+              "guides/community/mod-patterns"
+            ]
+          },
+          {
+            "group": "TypeScript How-To",
+            "pages": [
+              "guides/typescript/environment-setup",
+              "guides/typescript/creating-units",
+              "guides/typescript/creating-buildings",
+              "guides/typescript/creating-civilizations",
+              "guides/typescript/leaders-and-ages",
+              "guides/typescript/unique-quarters",
+              "guides/typescript/traditions",
+              "guides/typescript/progression-trees",
+              "guides/typescript/modifiers-and-effects",
+              "guides/typescript/assets-and-icons",
+              "guides/typescript/advanced-techniques"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Reference",
+        "groups": [
+          {
+            "group": "Reference",
+            "pages": [
+              "reference/modding-reference",
+              "reference/gameplay-mechanics",
+              "reference/file-paths",
+              "reference/database-schemas"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "TypeScript SDK with strongly-typed builders for mod generation",
+    "CLI tool (civ7) for managing game resources (zip/unzip/crawl/explore)",
+    "BFS XML crawler that produces dependency graphs in JSON, DOT, and SVG",
+    "Interactive HTML graph viewer for exploring game data relationships",
+    "Comprehensive game constants for units, abilities, effects, terrains, resources",
+    "Localization support for multiple languages",
+    "Plugin libraries for file operations, graph crawling, and mod management",
+    "Monorepo structure with playground for examples and experimentation"
+  ],
+  "publicApiSurface": [
+    "Mod class — orchestrates mod building and generates .modinfo",
+    "UnitBuilder — create custom units with stats, costs, abilities",
+    "CivilizationBuilder — define new civilizations with traits",
+    "ConstructibleBuilder — create buildings and improvements",
+    "ProgressionTreeBuilder — build civic and tech trees",
+    "ModifierBuilder — create game modifiers and effects",
+    "TraditionBuilder — add new policy cards",
+    "UniqueQuarterBuilder — design unique districts",
+    "LeaderUnlockBuilder — configure leader bonuses",
+    "ImportFileBuilder — import SQL files and custom assets",
+    "XmlFile / BaseFile — low-level file generation abstractions",
+    "civ7 data crawl <seed> — crawl XML resources and output graph",
+    "civ7 data explore <seed> — full pipeline: crawl → render → open viewer",
+    "civ7 data render <input> — render DOT to SVG",
+    "civ7 data slice <manifest> — copy files from manifest",
+    "civ7 data zip <profile> — create resource archives",
+    "civ7 data unzip <profile> — extract resource archives",
+    "civ7 mod git — manage mods via git subtree",
+    "UNIT, ABILITY, EFFECT, TERRAIN, RESOURCE constants — game entity enums"
+  ]
+}
