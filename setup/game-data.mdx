@@ -1,0 +1,93 @@
+---
+title: "Game data"
+description: "Pull game resources from your local Civilization VII installation into the repository for use by the CLI, docs, and playground."
+---
+
+The CLI, documentation site, and playground all depend on game resource files that are not committed to the repository. You extract these from your local Civilization VII installation using the `refresh:data` script.
+
+## How it works
+
+Running `bun run refresh:data` from the repo root executes two CLI commands in sequence:
+
+1. **`civ7 data zip`** — reads your Civ7 installation directory, applies the `default` profile's exclusion rules, and creates a zip archive at `.civ7/outputs/archives/civ7-official-resources.zip`.
+2. **`civ7 data unzip`** — extracts that archive into `.civ7/outputs/resources/`.
+
+Both steps are driven by the settings in `civ.config.jsonc`. The `default` profile excludes large binary assets (movies, icons, fonts, shaders) so the archive stays manageable while retaining all XML gameplay data.
+
+## Prerequisites
+
+Before running this command:
+
+- Complete the [installation steps](/setup/installation) so the `civ7` binary is available
+- Set `inputs.installDir` in `civ.config.jsonc` to your Civ7 installation path — see [Configuration](/setup/configuration) for platform-specific paths
+
+## Pull game data
+
+```bash
+bun run refresh:data
+```
+
+This creates the following output structure:
+
+```
+.civ7/outputs/
+├── archives/
+│   └── civ7-official-resources.zip   # Archived game resources
+└── resources/                         # Extracted XML and game data
+    ├── Base/
+    │   └── assets/
+    │       └── gameplay/
+    │           └── data/
+    │               └── ... (XML files)
+    └── ...
+```
+
+You only need to run this command once. Re-run it after a game update to refresh the data.
+
+## How apps consume game data
+
+### Docs and playground
+
+The `docs` and `playground` apps do not read directly from `.civ7/outputs/resources/`. Instead, they sync the resources they need when you run their `dev` commands. The docs app uses a fast in-process unzip via `@civ7/plugin-files` to extract only the files it needs.
+
+### Resources submodule
+
+Game resources are also maintained as a git submodule at `.civ7/outputs/resources`, published as `mateicanavra/civ7-official-resources`. This submodule contains a curated snapshot of the `default` profile output that team members and CI can use without running `refresh:data` against a local game installation.
+
+<Note>
+  If you cloned the repository and the `.civ7/outputs/resources` directory is empty, you can either run `bun run refresh:data` with a local game install, or initialize the submodule:
+
+  ```bash
+  git submodule update --init --recursive
+  ```
+</Note>
+
+## Profiles
+
+The `default` profile is used by `refresh:data`, but you can run zip and unzip with other profiles directly:
+
+```bash
+# Archive everything including assets
+civ7 data zip full
+
+# Archive only media assets
+civ7 data zip assets
+
+# Extract with a specific profile
+civ7 data unzip full
+```
+
+See [Configuration](/setup/configuration) for a full description of the built-in profiles and how to add your own.
+
+## Using game data with the CLI
+
+Once resources are extracted, the CLI commands that analyze game XML — `data crawl`, `data explore`, `data render`, `data slice` — will automatically use `.civ7/outputs/resources/` as their XML root. You can override this with the `--root` flag:
+
+```bash
+civ7 data crawl LEADER_AMANITORE --root .civ7/outputs/resources
+civ7 data explore CIVILIZATION_ROME --serve
+```
+
+<Tip>
+  Run `civ7 data explore LEADER_AMANITORE` after pulling game data to verify everything is working. It should open an interactive graph showing the leader's traits, modifiers, and requirement sets.
+</Tip>

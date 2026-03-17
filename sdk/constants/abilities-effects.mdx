@@ -1,0 +1,181 @@
+---
+title: "Abilities and effects"
+description: "ABILITY, EFFECT, COLLECTION, and REQUIREMENT constants for building game modifiers."
+---
+
+## `ABILITY`
+
+The `ABILITY` constant provides typed references to game ability identifiers. Abilities control what special rules apply to units or entities.
+
+```typescript
+import { ABILITY } from '@mateicanavra/civ7-sdk';
+```
+
+### Narrative abilities
+
+| Key | Value |
+|---|---|
+| `ABILITY.NARRATIVE_STRENGTH` | `'ABILITY_NARRATIVE_STRENGTH'` |
+| `ABILITY.NARRATIVE_MOVEMENT` | `'ABILITY_NARRATIVE_MOVEMENT'` |
+| `ABILITY.NARRATIVE_AGGRESSION` | `'ABILITY_NARRATIVE_AGGRESSION'` |
+| `ABILITY.NARRATIVE_DEFENSIVE` | `'ABILITY_NARRATIVE_DEFENSIVE'` |
+
+### Technology abilities
+
+| Key | Value |
+|---|---|
+| `ABILITY.TECH_CAVALRY` | `'ABILITY_MO_TECH_CAVALRY'` |
+| `ABILITY.TECH_INFANTRY` | `'ABILITY_MO_TECH_INFANTRY'` |
+| `ABILITY.TECH_RANGED` | `'ABILITY_MO_TECH_RANGED'` |
+| `ABILITY.TECH_SIEGE` | `'ABILITY_MO_TECH_SIEGE'` |
+| `ABILITY.TECH_NAVAL` | `'ABILITY_MO_TECH_NAVAL'` |
+| `ABILITY.TECH_INTERCEPT_RANGE` | `'ABILITY_MO_TECH_INTERCEPT_RANGE'` |
+
+### Unique unit abilities
+
+| Key | Value |
+|---|---|
+| `ABILITY.HUSSAR` | `'ABILITY_HUSSAR'` |
+| `ABILITY.COSSACK` | `'ABILITY_COSSACK'` |
+| `ABILITY.MARINE` | `'ABILITY_MARINE'` |
+| `ABILITY.SEPOY` | `'ABILITY_SEPOY'` |
+| `ABILITY.RIVER_RAIDS` | `'ABILITY_RIVER_RAIDS'` |
+| `ABILITY.PARTISAN` | `'ABILITY_PARTISAN'` |
+| `ABILITY.CLAIM_RESOURCE` | `'ABILITY_CLAIM_RESOURCE'` |
+| `ABILITY.FALX_WARRIOR` | `'ABILITY_FALX_WARRIOR'` |
+| `ABILITY.COMBAT_FRIENDLY_TERRITORY` | `'ABILITY_AT_MOD_COMBAT_FRIENDLY_TERRITORY'` |
+
+## `EFFECT`
+
+The `EFFECT` constant contains over 500 game effect identifiers. Pass them to `ModifierBuilder.modifier.effect`.
+
+```typescript
+import { EFFECT } from '@mateicanavra/civ7-sdk';
+```
+
+### Selected yield effects
+
+| Key | Value | Description |
+|---|---|---|
+| `EFFECT.PLAYER_ADJUST_YIELD` | `'EFFECT_PLAYER_ADJUST_YIELD'` | Flat yield change for the player |
+| `EFFECT.CITY_ADJUST_YIELD` | `'EFFECT_CITY_ADJUST_YIELD'` | Flat yield change in a city |
+| `EFFECT.CITY_ADJUST_YIELD_PER_RESOURCE` | `'EFFECT_CITY_ADJUST_YIELD_PER_RESOURCE'` | Yield scaled by local resources |
+| `EFFECT.CITY_ADJUST_YIELD_PER_POPULATION` | `'EFFECT_CITY_ADJUST_YIELD_PER_POPULATION'` | Yield scaled by population |
+| `EFFECT.PLAYER_ADJUST_CONSTRUCTIBLE_YIELD` | `'EFFECT_PLAYER_ADJUST_CONSTRUCTIBLE_YIELD'` | Yield change from constructibles |
+
+### Selected unit effects
+
+| Key | Value | Description |
+|---|---|---|
+| `EFFECT.ADJUST_UNIT_STRENGTH_MODIFIER` | `'EFFECT_ADJUST_UNIT_STRENGTH_MODIFIER'` | Flat combat strength change |
+| `EFFECT.ADJUST_UNIT_MOVEMENT` | `'EFFECT_UNIT_ADJUST_MOVEMENT'` | Extra movement points |
+| `EFFECT.ADJUST_UNIT_SIGHT` | `'EFFECT_ADJUST_UNIT_SIGHT'` | Extra sight range |
+| `EFFECT.ADJUST_UNIT_ATTACK_RANGE` | `'EFFECT_ADJUST_UNIT_ATTACK_RANGE'` | Extra attack range |
+| `EFFECT.UNIT_ADJUST_HEAL_PER_TURN` | `'EFFECT_UNIT_ADJUST_HEAL_PER_TURN'` | Bonus HP healed per turn |
+| `EFFECT.ADJUST_UNIT_IGNORE_ZOC` | `'EFFECT_ADJUST_UNIT_IGNORE_ZOC'` | Unit ignores zones of control |
+| `EFFECT.ADJUST_UNIT_FRIENDLY_TERRITORY_COMBAT` | `'EFFECT_ADJUST_UNIT_FRIENDLY_TERRITORY_COMBAT'` | Combat bonus in friendly territory |
+
+### Reveal and progression effects
+
+| Key | Value |
+|---|---|
+| `EFFECT.PLAYER_REVEAL_CULTURE_TREE` | `'EFFECT_PLAYER_REVEAL_CULTURE_TREE'` |
+| `EFFECT.PLAYER_GRANT_TRADITION_SLOTS` | `'EFFECT_PLAYER_GRANT_TRADITION_SLOTS'` |
+| `EFFECT.PLAYER_GRANT_PROGRESSION` | `'EFFECT_PLAYER_GRANT_PROGRESSION'` |
+
+### Usage example
+
+```typescript
+import { ModifierBuilder, COLLECTION, EFFECT, REQUIREMENT } from '@mateicanavra/civ7-sdk';
+
+const modifier = new ModifierBuilder({
+    modifier: {
+        collection: COLLECTION.OWNER,
+        effect: EFFECT.CITY_ADJUST_YIELD,
+        permanent: true,
+        requirements: [{
+            type: REQUIREMENT.CITY_IS_CAPITAL,
+        }],
+        arguments: [
+            { name: 'YieldType', value: 'YIELD_CULTURE' },
+            { name: 'Amount', value: 3 },
+        ],
+    },
+    localizations: [{ description: '+3 Culture in your capital' }],
+});
+```
+
+## `COLLECTION`
+
+The collection determines which subjects the modifier evaluates against.
+
+```typescript
+import { COLLECTION } from '@mateicanavra/civ7-sdk';
+```
+
+| Key | Description |
+|---|---|
+| `COLLECTION.OWNER` | The player (civ) that owns the entity |
+| `COLLECTION.ALL_CITIES` | All cities owned by the player |
+| `COLLECTION.ALL_UNITS` | All units owned by the player |
+| `COLLECTION.CITY` | The specific city (used with city modifiers) |
+
+## `REQUIREMENT`
+
+Requirements gate when a modifier is active. They appear in `modifier.requirements`.
+
+```typescript
+import { REQUIREMENT } from '@mateicanavra/civ7-sdk';
+```
+
+### Common requirements
+
+| Key | Value | Description |
+|---|---|---|
+| `REQUIREMENT.CITY_IS_CAPITAL` | `'REQUIREMENT_CITY_IS_CAPITAL'` | Only applies in the capital |
+| `REQUIREMENT.CITY_IS_CITY` | `'REQUIREMENT_CITY_IS_CITY'` | Only applies in full cities (not towns) |
+| `REQUIREMENT.CITY_HAS_UNIQUE_QUARTER` | `'REQUIREMENT_CITY_HAS_UNIQUE_QUARTER'` | Only when a specific unique quarter is present |
+| `REQUIREMENT.PLAYER_HAS_CIVILIZATION_TRAIT` | `'REQUIREMENT_PLAYER_HAS_CIVILIZATION_TRAIT'` | Only for players with a specific civ trait |
+| `REQUIREMENT.PLAYER_HAS_CIVILIZATION_OR_LEADER_TRAIT` | `'REQUIREMENT_PLAYER_HAS_CIVILIZATION_OR_LEADER_TRAIT'` | Matches civ or leader trait |
+| `REQUIREMENT.PLAYER_LEADER_TYPE_MATCHES` | `'REQUIREMENT_PLAYER_LEADER_TYPE_MATCHES'` | Specific leader is playing |
+
+### Usage with arguments
+
+Many requirements accept `arguments` that narrow the condition:
+
+```typescript
+requirements: [
+    {
+        type: REQUIREMENT.CITY_HAS_UNIQUE_QUARTER,
+        arguments: [{ name: 'UniqueQuarterType', value: 'QUARTER_GONDOR' }],
+    },
+    {
+        type: REQUIREMENT.PLAYER_HAS_CIVILIZATION_OR_LEADER_TRAIT,
+        arguments: [{ name: 'TraitType', value: 'TRAIT_GONDOR' }],
+    },
+]
+```
+
+## `REQUIREMENT_SET`
+
+```typescript
+import { REQUIREMENT_SET } from '@mateicanavra/civ7-sdk';
+
+REQUIREMENT_SET.TEST_ALL        // All requirements must pass
+REQUIREMENT_SET.TEST_LEAST_ONE  // At least one requirement must pass
+```
+
+## `YIELD`
+
+Yield type constants used in yield changes, maintenance, and modifier arguments:
+
+```typescript
+import { YIELD } from '@mateicanavra/civ7-sdk';
+
+YIELD.GOLD        // 'YIELD_GOLD'
+YIELD.FOOD        // 'YIELD_FOOD'
+YIELD.PRODUCTION  // 'YIELD_PRODUCTION'
+YIELD.SCIENCE     // 'YIELD_SCIENCE'
+YIELD.CULTURE     // 'YIELD_CULTURE'
+YIELD.HAPPINESS   // 'YIELD_HAPPINESS'
+```

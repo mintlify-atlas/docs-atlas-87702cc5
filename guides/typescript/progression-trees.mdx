@@ -1,0 +1,262 @@
+---
+title: "Progression Trees"
+description: "Build technology and civic trees using ProgressionTreeBuilder and ProgressionTreeNodeBuilder."
+---
+
+Progression Trees are the technology and civic advancement systems in Civilization VII. Use `ProgressionTreeBuilder` and `ProgressionTreeNodeBuilder` to create custom trees with nodes, prerequisites, and unlockable content.
+
+## Basic progression tree
+
+Creating a tree involves: defining nodes, binding modifiers to nodes, setting prerequisites, then binding nodes to the tree.
+
+```typescript
+import {
+  ACTION_GROUP_BUNDLE,
+  ADVISORY,
+  Mod,
+  ModifierBuilder,
+  ProgressionTreeBuilder,
+  ProgressionTreeNodeBuilder,
+  COLLECTION,
+  EFFECT,
+  YIELD,
+  AGE
+} from "civ7-modding-tools";
+
+const mod = new Mod({ id: "my-civics-mod", version: "1.0" });
+
+// Step 1: Create nodes
+const tribalUnity = new ProgressionTreeNodeBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  progressionTreeNode: {
+    progressionTreeNodeType: "NODE_CIVICS_TRIBAL_UNITY",
+  },
+  progressionTreeAdvisories: [ADVISORY.CLASS_CULTURE],
+  localizations: [{ name: "Tribal Unity" }]
+});
+
+const warCouncil = new ProgressionTreeNodeBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  progressionTreeNode: {
+    progressionTreeNodeType: "NODE_CIVICS_WAR_COUNCIL",
+  },
+  progressionTreeAdvisories: [ADVISORY.CLASS_MILITARY],
+  localizations: [{ name: "War Council" }]
+});
+
+// Step 2: Create node modifiers
+const unityModifier = new ModifierBuilder({
+  modifier: {
+    collection: COLLECTION.OWNER,
+    effect: EFFECT.PLAYER_ADJUST_CONSTRUCTIBLE_YIELD,
+    arguments: [
+      { name: "Tag", value: "CULTURE" },
+      { name: "YieldType", value: "YIELD_CULTURE" },
+      { name: "Amount", value: 5 }
+    ]
+  },
+  localizations: [{ description: "+5 Culture from cultural buildings." }]
+});
+
+const warCouncilModifier = new ModifierBuilder({
+  modifier: {
+    collection: COLLECTION.OWNER,
+    effect: EFFECT.PLAYER_ADJUST_CONSTRUCTIBLE_YIELD,
+    arguments: [
+      { name: "Tag", value: "MILITARY" },
+      { name: "YieldType", value: "YIELD_PRODUCTION" },
+      { name: "Amount", value: 10 }
+    ]
+  },
+  localizations: [{ description: "+10 Production from military buildings." }]
+});
+
+// Step 3: Bind modifiers to nodes
+tribalUnity.bind([unityModifier]);
+warCouncil.bind([warCouncilModifier]);
+
+// Step 4: Create the tree with prerequisites
+const dacianCivics = new ProgressionTreeBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  progressionTree: {
+    progressionTreeType: "TREE_CIVICS_DACIA",
+    ageType: AGE.ANTIQUITY
+  },
+  // War Council requires Tribal Unity
+  progressionTreePrereqs: [{
+    node: warCouncil.progressionTreeNode.progressionTreeNodeType,
+    prereqNode: tribalUnity.progressionTreeNode.progressionTreeNodeType
+  }],
+  localizations: [{ name: "Dacian Traditions" }]
+});
+
+// Step 5: Bind nodes to tree
+dacianCivics.bind([tribalUnity, warCouncil]);
+
+// Step 6: Add everything
+mod.add([dacianCivics, tribalUnity, warCouncil]).build("./dist");
+```
+
+## Complex multi-branch tree
+
+For trees with multiple branches:
+
+```typescript
+const node1 = new ProgressionTreeNodeBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  progressionTreeNode: { progressionTreeNodeType: "NODE_TECH_MINING" },
+  progressionTreeAdvisories: [ADVISORY.CLASS_PRODUCTION],
+  localizations: [{ name: "Mining" }]
+});
+
+const node2 = new ProgressionTreeNodeBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  progressionTreeNode: { progressionTreeNodeType: "NODE_TECH_BRONZE_WORKING" },
+  progressionTreeAdvisories: [ADVISORY.CLASS_PRODUCTION],
+  localizations: [{ name: "Bronze Working" }]
+});
+
+const node3 = new ProgressionTreeNodeBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  progressionTreeNode: { progressionTreeNodeType: "NODE_TECH_IRON_WORKING" },
+  progressionTreeAdvisories: [ADVISORY.CLASS_MILITARY],
+  localizations: [{ name: "Iron Working" }]
+});
+
+const node4 = new ProgressionTreeNodeBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  progressionTreeNode: { progressionTreeNodeType: "NODE_TECH_WHEEL" },
+  progressionTreeAdvisories: [ADVISORY.CLASS_INFRASTRUCTURE],
+  localizations: [{ name: "Wheel" }]
+});
+
+const node5 = new ProgressionTreeNodeBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  progressionTreeNode: { progressionTreeNodeType: "NODE_TECH_HORSEBACK_RIDING" },
+  progressionTreeAdvisories: [ADVISORY.CLASS_MILITARY],
+  localizations: [{ name: "Horseback Riding" }]
+});
+
+const technologyTree = new ProgressionTreeBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  progressionTree: {
+    progressionTreeType: "TREE_TECHNOLOGY_DACIA",
+    ageType: AGE.ANTIQUITY
+  },
+  progressionTreePrereqs: [
+    // Branch 1: Mining → Bronze Working → Iron Working
+    { node: node2.progressionTreeNode.progressionTreeNodeType, prereqNode: node1.progressionTreeNode.progressionTreeNodeType },
+    { node: node3.progressionTreeNode.progressionTreeNodeType, prereqNode: node2.progressionTreeNode.progressionTreeNodeType },
+    // Branch 2: Wheel → Horseback Riding
+    { node: node5.progressionTreeNode.progressionTreeNodeType, prereqNode: node4.progressionTreeNode.progressionTreeNodeType },
+  ],
+  localizations: [{ name: "Dacian Technologies" }]
+});
+
+technologyTree.bind([node1, node2, node3, node4, node5]);
+mod.add([technologyTree, node1, node2, node3, node4, node5]).build("./dist");
+```
+
+## Unlocking content via nodes
+
+Nodes can unlock units, buildings, or traditions when researched:
+
+```typescript
+import { UnitBuilder, UNIT_CLASS, REQUIREMENT } from "civ7-modding-tools";
+
+// Create the unit to unlock
+const falxWarrior = new UnitBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  unit: { unitType: "UNIT_FALX_WARRIOR" },
+  unitCost: { cost: 90 },
+  unitStat: { combat: 35 },
+  typeTags: [UNIT_CLASS.MELEE],
+  localizations: [{ name: "Falx Warrior", description: "Powerful Dacian warrior." }]
+});
+
+// Create the tech node
+const ironWorkingTech = new ProgressionTreeNodeBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  progressionTreeNode: { progressionTreeNodeType: "NODE_TECH_IRON_WORKING" },
+  progressionTreeAdvisories: [ADVISORY.CLASS_MILITARY],
+  localizations: [{ name: "Iron Working" }]
+});
+
+// Modifier that enables the unit
+const unitUnlock = new ModifierBuilder({
+  modifier: {
+    collection: COLLECTION.OWNER,
+    effect: EFFECT.PLAYER_ENABLE_UNIT,
+    arguments: [{ name: "UnitType", value: falxWarrior.unit.unitType }]
+  },
+  localizations: [{ description: "Unlocks the Falx Warrior." }]
+});
+
+// Bind the unlock to the tech node
+ironWorkingTech.bind([unitUnlock]);
+
+// Optionally, add a requirement to the unit itself (requires the tech)
+falxWarrior.addRequirement({
+  type: REQUIREMENT.PLAYER_HAS_PROGRESSION_TREE_NODE,
+  arguments: [{
+    name: "ProgressionTreeNodeType",
+    value: ironWorkingTech.progressionTreeNode.progressionTreeNodeType
+  }]
+});
+
+mod.add([ironWorkingTech, falxWarrior]).build("./dist");
+```
+
+## Integrating a tree with a civilization
+
+When you bind a `ProgressionTreeBuilder` to a `CivilizationBuilder`, the SDK automatically wires up the reveal modifier so the tree appears in the civic screen for that civilization:
+
+```typescript
+const dacia = new CivilizationBuilder({ /* ... */ });
+const dacianCivics = new ProgressionTreeBuilder({ /* ... */ });
+
+dacia.bind([dacianCivics]);
+```
+
+## Tree visuals
+
+Control node positions in the tree UI:
+
+```typescript
+import { ProgressionTreeVisualsBuilder } from "civ7-modding-tools";
+
+const treeVisuals = new ProgressionTreeVisualsBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  progressionTreeVisuals: {
+    progressionTreeType: dacianCivics.progressionTree.progressionTreeType,
+  },
+  nodeVisuals: [
+    {
+      progressionTreeNodeType: tribalUnity.progressionTreeNode.progressionTreeNodeType,
+      x: 100,
+      y: 100
+    },
+    {
+      progressionTreeNodeType: warCouncil.progressionTreeNode.progressionTreeNodeType,
+      x: 250,
+      y: 100
+    }
+  ]
+});
+
+mod.add([dacianCivics, tribalUnity, warCouncil, treeVisuals]).build("./dist");
+```
+
+## Best practices
+
+- **Logical progression** — prerequisites should flow naturally from basic to advanced
+- **Balanced research costs** — consider the time investment for different paths
+- **Meaningful unlocks** — every node should reward meaningful decisions
+- **Branching choices** — give players multiple paths with different strategic payoffs
+- **Age appropriateness** — content should fit historically with the Age it's in
+
+## Related guides
+
+- [Traditions](/guides/typescript/traditions) — unlock traditions from civic nodes
+- [Modifiers & Effects](/guides/typescript/modifiers-and-effects)
+- [Creating Civilizations](/guides/typescript/creating-civilizations)

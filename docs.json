@@ -1,122 +1,167 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Civ7 Modding Tools",
+  "theme": "palm",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#848c8e",
+    "light": "#11161e",
+    "dark": "#cfd0d2"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "https://media.brand.dev/2b01fe20-c04b-4a1d-a2f9-1d2789c50a7a.jpg",
+  "logo": {
+    "light": "https://media.brand.dev/5ffd6ce4-2434-4b4b-920a-f8cacac8b48b.svg",
+    "dark": "https://media.brand.dev/5ffd6ce4-2434-4b4b-920a-f8cacac8b48b.svg"
+  },
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/mateicanavra/civ7-modding-tools"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/mateicanavra/civ7-modding-tools"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Get Started",
         "groups": [
           {
-            "group": "Getting started",
-            "pages": [
-              "index",
-              "quickstart",
-              "development"
-            ]
+            "group": "Introduction",
+            "pages": ["introduction", "quickstart"]
           },
           {
-            "group": "Customization",
+            "group": "Setup",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
-            ]
-          },
-          {
-            "group": "Writing content",
-            "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "setup/installation",
+              "setup/configuration",
+              "setup/game-data"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "SDK",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Overview",
+            "pages": ["sdk/overview", "sdk/core-concepts"]
+          },
+          {
+            "group": "Builders",
             "pages": [
-              "api-reference/introduction"
+              "sdk/builders/unit-builder",
+              "sdk/builders/civilization-builder",
+              "sdk/builders/constructible-builder",
+              "sdk/builders/progression-tree-builder",
+              "sdk/builders/modifier-builder",
+              "sdk/builders/tradition-builder",
+              "sdk/builders/unique-quarter-builder",
+              "sdk/builders/leader-unlock-builder",
+              "sdk/builders/import-file-builder"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Low-Level API",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "sdk/low-level/nodes",
+              "sdk/low-level/xml-files",
+              "sdk/low-level/action-groups"
+            ]
+          },
+          {
+            "group": "Constants & Types",
+            "pages": [
+              "sdk/constants/overview",
+              "sdk/constants/units",
+              "sdk/constants/abilities-effects"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "CLI",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": ["cli/overview"]
+          },
+          {
+            "group": "Commands",
+            "pages": [
+              "cli/commands/data-crawl",
+              "cli/commands/data-explore",
+              "cli/commands/data-render",
+              "cli/commands/data-slice",
+              "cli/commands/data-zip",
+              "cli/commands/data-unzip",
+              "cli/commands/mod-git",
+              "cli/commands/docs"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": ["cli/configuration"]
+          }
+        ]
+      },
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Official Guides",
+            "pages": [
+              "guides/official/getting-started",
+              "guides/official/database-modding",
+              "guides/official/modifier-system",
+              "guides/official/modinfo-files",
+              "guides/official/narrative-events"
+            ]
+          },
+          {
+            "group": "Community Guides",
+            "pages": [
+              "guides/community/getting-started",
+              "guides/community/modding-architecture",
+              "guides/community/creating-civilizations",
+              "guides/community/creating-leaders",
+              "guides/community/mod-patterns"
+            ]
+          },
+          {
+            "group": "TypeScript How-To",
+            "pages": [
+              "guides/typescript/environment-setup",
+              "guides/typescript/creating-units",
+              "guides/typescript/creating-buildings",
+              "guides/typescript/creating-civilizations",
+              "guides/typescript/leaders-and-ages",
+              "guides/typescript/unique-quarters",
+              "guides/typescript/traditions",
+              "guides/typescript/progression-trees",
+              "guides/typescript/modifiers-and-effects",
+              "guides/typescript/assets-and-icons",
+              "guides/typescript/advanced-techniques"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Reference",
+        "groups": [
+          {
+            "group": "Reference",
+            "pages": [
+              "reference/modding-reference",
+              "reference/gameplay-mechanics",
+              "reference/file-paths",
+              "reference/database-schemas"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

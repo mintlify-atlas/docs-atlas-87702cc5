@@ -1,0 +1,131 @@
+---
+title: "UniqueQuarterBuilder"
+description: "Design unique districts that replace standard districts and apply special bonuses."
+---
+
+`UniqueQuarterBuilder` creates a unique quarter (unique district). It requires exactly two building types that form the quarter, and supports binding modifiers to apply bonuses when the quarter is present.
+
+## Basic usage
+
+```typescript
+import {
+    Mod,
+    UniqueQuarterBuilder,
+    ConstructibleBuilder,
+    CivilizationBuilder,
+    ModifierBuilder,
+    ACTION_GROUP_BUNDLE,
+    COLLECTION,
+    EFFECT,
+    REQUIREMENT,
+    YIELD,
+    CONSTRUCTIBLE_TYPE_TAG,
+    DISTRICT,
+} from '@mateicanavra/civ7-sdk';
+
+const mod = new Mod({ id: 'my-mod', version: '1.0.0' });
+
+// The two buildings that make up the quarter
+const building1 = new ConstructibleBuilder({
+    actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+    constructible: { constructibleType: 'BUILDING_GONDOR_COURT' },
+    building: {},
+    typeTags: [CONSTRUCTIBLE_TYPE_TAG.AGELESS],
+    constructibleValidDistricts: [DISTRICT.URBAN],
+    localizations: [{ name: 'Court of the Fountain', description: 'A great court.' }],
+});
+
+const building2 = new ConstructibleBuilder({
+    actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+    constructible: { constructibleType: 'BUILDING_GONDOR_LIBRARY' },
+    building: {},
+    typeTags: [CONSTRUCTIBLE_TYPE_TAG.AGELESS],
+    constructibleValidDistricts: [DISTRICT.URBAN],
+    localizations: [{ name: 'Library of Minas Tirith', description: 'Holds the lore of ages.' }],
+});
+
+const uniqueQuarter = new UniqueQuarterBuilder({
+    actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+    uniqueQuarter: {
+        uniqueQuarterType: 'QUARTER_GONDOR',
+        buildingType1: building1.constructible.constructibleType,
+        buildingType2: building2.constructible.constructibleType,
+    },
+    localizations: [
+        { name: 'Citadel District', description: 'The heart of Gondorian civilization.' },
+    ],
+}).bind([
+    new ModifierBuilder({
+        modifier: {
+            collection: COLLECTION.ALL_CITIES,
+            effect: EFFECT.CITY_ADJUST_YIELD,
+            permanent: true,
+            requirements: [{
+                type: REQUIREMENT.CITY_HAS_UNIQUE_QUARTER,
+                arguments: [{ name: 'UniqueQuarterType', value: 'QUARTER_GONDOR' }],
+            }, {
+                type: REQUIREMENT.CITY_IS_CITY,
+            }],
+            arguments: [
+                { name: 'YieldType', value: YIELD.GOLD },
+                { name: 'Amount', value: 3 },
+                { name: 'Tooltip', value: 'LOC_QUARTER_GONDOR_NAME' },
+            ],
+        },
+    }),
+]);
+
+const civilization = new CivilizationBuilder({ /* ... */ });
+civilization.bind([building1, building2, uniqueQuarter]);
+
+mod.add([civilization, building1, building2, uniqueQuarter]);
+mod.build('./dist');
+```
+
+## Constructor options
+
+<ParamField path="actionGroupBundle" type="ActionGroupBundle" required>
+  When to load the unique quarter's files.
+</ParamField>
+
+<ParamField path="uniqueQuarter" type="TPartialRequired<UniqueQuarterNode, 'uniqueQuarterType' | 'buildingType1' | 'buildingType2'>" required>
+  Core quarter data. All three fields are required.
+
+  | Field | Type | Description |
+  |---|---|---|
+  | `uniqueQuarterType` | `string` | Unique identifier, e.g. `'QUARTER_GONDOR'` |
+  | `buildingType1` | `string` | First building's `constructibleType` |
+  | `buildingType2` | `string` | Second building's `constructibleType` |
+  | `traitType` | `string` | Civilization trait that grants this quarter (set by `CivilizationBuilder.bind()`) |
+</ParamField>
+
+<ParamField path="icon" type="TPartialRequired<TIconDefinitionNode, 'path'>">
+  Icon definition. Defaults to `fs://game/civ_sym_han`.
+</ParamField>
+
+<ParamField path="localizations" type="Partial<TUniqueQuarterLocalization>[]">
+  Display text.
+
+  | Field | Type | Description |
+  |---|---|---|
+  | `name` | `string` | Quarter name |
+  | `description` | `string` | Description shown in the district panel |
+</ParamField>
+
+## Binding modifiers
+
+Call `uniqueQuarter.bind(items)` to attach `ModifierBuilder` instances. For each non-detached modifier:
+- The modifier is added to `game-effects.xml`.
+- A `GameModifier` row is added.
+- A `UniqueQuarterModifier` row links the modifier to this quarter.
+
+## Output files
+
+Files are written under `/constructibles/<kebab-type>/`:
+
+| File | Action group | Action |
+|---|---|---|
+| `always.xml` | `bundle.always` | `UpdateDatabase` |
+| `icons.xml` | `bundle.always` | `UpdateIcons` |
+| `game-effects.xml` | `bundle.always` | `UpdateDatabase` |
+| `localization.xml` | `bundle.shell`, `bundle.always` | `UpdateText` |

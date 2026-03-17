@@ -1,0 +1,152 @@
+---
+title: "Core concepts"
+description: "How the Civ7 SDK is structured — the builder pattern, the Mod class, action groups, localization, and file output layout."
+---
+
+## The builder pattern
+
+Every high-level builder follows the same pipeline:
+
+```
+Builder → Nodes → XmlFile[] → Mod output
+```
+
+1. You pass a configuration object to a builder constructor.
+2. The builder's internal `migrate()` method converts that config into typed XML nodes (`DatabaseNode`, `UnitNode`, etc.).
+3. The builder's `build()` method wraps those nodes in `XmlFile` objects with the correct action groups.
+4. `Mod.build()` collects every `XmlFile`, writes them to disk, and generates the `.modinfo`.
+
+You never touch XML directly unless you want to.
+
+## The `Mod` class
+
+`Mod` is the top-level orchestrator. It collects builders and raw files, then writes the complete mod directory.
+
+```typescript
+import { Mod } from '@mateicanavra/civ7-sdk';
+
+const mod = new Mod({
+    id: 'my-mod',           // used as the mod ID in .modinfo
+    name: 'My Mod',
+    version: '1.0.0',
+    description: 'An example mod.',
+    authors: 'Your Name',
+    affectsSavedGames: true,
+});
+```
+
+### `mod.add(builders)`
+
+Register one or more builders. Returns `this` so you can chain calls.
+
+```typescript
+mod.add([unitBuilder, civilizationBuilder]);
+```
+
+### `mod.addFiles(files)`
+
+Register raw `XmlFile` or `ImportFile` objects (the low-level API). Use this when you want full control over a specific file.
+
+```typescript
+mod.addFiles([customXmlFile]);
+```
+
+### `mod.build(dist, clear?)`
+
+Writes the mod to disk. `dist` is the output directory (e.g. `'./my-mod'`). The optional `clear` flag (default `true`) removes the directory before writing.
+
+```typescript
+mod.build('./dist');
+```
+
+During `build()`, the `Mod` class:
+
+- Calls `builder.build()` on every registered builder to get `XmlFile[]`.
+- Filters out empty files.
+- Collects all unique `ActionCriteria` from every file's action groups.
+- Assembles the `.modinfo` XML with `<ActionCriteria>` and `<ActionGroups>` sections.
+- Writes every file to disk under `dist`.
+
+## Action groups
+
+Action groups tell Civ7 *when* to load a file during the game lifecycle. Each file belongs to one or more action groups. The SDK provides pre-built action group bundles via `ACTION_GROUP_BUNDLE`.
+
+```typescript
+import { ACTION_GROUP_BUNDLE, AGE } from '@mateicanavra/civ7-sdk';
+
+// Pre-built bundle for the Antiquity age
+const bundle = ACTION_GROUP_BUNDLE.AGE_ANTIQUITY;
+// bundle.shell   — loads in the shell (main menu)
+// bundle.always  — loads whenever the game is running
+// bundle.current — loads only when the Antiquity age is active
+// bundle.exist   — loads in any age equal to or after Antiquity
+```
+
+All builders accept an `actionGroupBundle` property:
+
+```typescript
+const unit = new UnitBuilder({
+    actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+    // ...
+});
+```
+
+For the low-level API, use `ACTION_GROUP` and `ACTION_GROUP_ACTION` constants directly.
+
+<Note>
+Choosing the wrong action group is one of the most common causes of mods not loading. Use `ACTION_GROUP_BUNDLE` unless you have a specific reason to override.
+</Note>
+
+## `ActionGroupBundle` slots
+
+| Slot | Scope | Criteria |
+|---|---|---|
+| `shell` | `shell` | Always (main menu + in-game) |
+| `always` | `game` | Always (all ages) |
+| `current` | `game` | Only the selected age |
+| `exist` | `game` | Selected age and all later ages |
+
+Each slot corresponds to an `ActionGroupNode` instance. The `Mod.build()` method deduplicates criteria by ID, so if multiple files share the same action group, they are grouped under one `<ActionGroup>` entry in the `.modinfo`.
+
+## Localization
+
+Every builder that affects displayed text accepts a `localizations` array. Each entry maps to one or more `<Row>` entries in the game's `EnglishText` table.
+
+```typescript
+const unit = new UnitBuilder({
+    // ...
+    localizations: [
+        { language: 'en_US', name: 'Custom Scout', description: 'An enhanced recon unit' },
+        { language: 'fr_FR', name: 'Éclaireur Personnalisé', description: 'Une unité de reconnaissance améliorée' },
+    ],
+});
+```
+
+If `language` is omitted, the entry defaults to English. Localization files are placed in `localization.xml` under the entity's output folder and assigned to both `shell` and `always` action groups so text is available from the main menu.
+
+## File organization
+
+Each builder writes its output to a dedicated subdirectory. For example, `UnitBuilder` with `unitType: 'UNIT_CUSTOM_SCOUT'` produces:
+
+```
+dist/
+├── my-first-mod.modinfo
+└── units/
+    └── unit-custom-scout/
+        ├── current.xml       ← database rows (unit, stats, costs, tags)
+        ├── visual-remap.xml  ← optional visual remap
+        ├── localization.xml  ← display text
+        └── icons.xml         ← icon definition
+```
+
+The pattern is consistent across all builders:
+
+| Builder | Output path |
+|---|---|
+| `UnitBuilder` | `/units/<kebab-unit-type>/` |
+| `CivilizationBuilder` | `/civilizations/<kebab-civ-type>/` |
+| `ConstructibleBuilder` | `/constructibles/<kebab-type>/` |
+| `ProgressionTreeBuilder` | `/progression-trees/<kebab-type>/` |
+| `TraditionBuilder` | `/traditions/<kebab-type>/` |
+| `UniqueQuarterBuilder` | `/constructibles/<kebab-type>/` |
+| `LeaderUnlockBuilder` | `/unlocks/<leader>-<civ>/` |

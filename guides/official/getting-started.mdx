@@ -1,0 +1,163 @@
+---
+title: "Getting Started"
+description: "Introduction to Civ VII modding — what mods can do, how to set up your environment, and creating your first .modinfo file."
+---
+
+Modding is the process of modifying the game. When you boot Civilization VII, the game scans a set of designated folders for mods and adds them to a list so you can toggle them on or off. Each mod has a set of actions that execute when its mod is activated at game setup.
+
+Mods can do many things: modify the UI with **JavaScript, HTML, and CSS**; change gameplay data with **SQL or XML**; introduce new behaviours through **JavaScript** scripting; or combine all three.
+
+## Setting expectations
+
+This guide won't be a comprehensive tutorial on every possible mod type, nor a deep dive into JavaScript, SQL, or XML. The goal is to give you the basics and point you toward resources for going further.
+
+## Languages at a glance
+
+<AccordionGroup>
+  <Accordion title="XML" icon="file-xml">
+    XML is probably the easiest language for beginners. Every opening `<tag>` has a closing `</tag>` or is self-closing like `<tag/>`. Tags can have child elements and attributes:
+
+    ```xml
+    <?xml version="1.0" encoding="utf-8"?>
+    <Mod id="my-first-mod" version="1" xmlns="ModInfo">
+      <Properties>
+        <Name>My First Mod</Name>
+        <Description>This is my first Mod.</Description>
+        <Authors>Me</Authors>
+        <AffectsSavedGames>1</AffectsSavedGames>
+      </Properties>
+      <Dependencies>
+      </Dependencies>
+    </Mod>
+    ```
+
+    Whitespace doesn't matter, but keep your code readable. Make sure every tag is properly closed and the structure matches the examples in the game files.
+  </Accordion>
+
+  <Accordion title="SQL" icon="database">
+    SQL is more complex but still approachable. The core construct is a `statement` that begins with an instruction like `INSERT INTO` and ends with a semicolon `;`.
+
+    ```sql
+    INSERT INTO Types
+            (Type,                              Kind)
+    VALUES  ('TRADITION_FXS_CYLINDER_SEALS',    'KIND_TRADITION');
+
+    INSERT INTO TraditionModifiers
+            (TraditionType,     ModifierId)
+    VALUES  ('TRADITION_PANJI', 'MOD_FXS_TRADITION_PANJI_QUARTER_CULTURE'),
+            ('TRADITION_PANJI', 'MOD_FXS_TRADITION_PANJI_QUARTER_CULTURE_ISLAND');
+    ```
+
+    Whitespace between words doesn't matter, but commas and semicolons are strict — mixing them up will break things.
+  </Accordion>
+
+  <Accordion title="JavaScript" icon="code">
+    JavaScript is a full programming language. You won't learn it just from reading examples. You don't need it for most mods — only for UI changes or advanced gameplay scripting. If you want to go that route, there are extensive learning resources available online.
+  </Accordion>
+</AccordionGroup>
+
+## Setting up
+
+<Tabs>
+  <Tab title="Tools" icon="wrench">
+    <Card title="Code editor" icon="code" href="https://code.visualstudio.com/" cta="Download VS Code" arrow="true">
+      Visual Studio Code is a solid choice with syntax highlighting, extensions for XML and SQL, and an integrated terminal.
+    </Card>
+
+    <Card title="Civilization VII Modding SDK" icon="code" href="https://steamcommunity.com/app/3688890" cta="Download the SDK" arrow="true">
+      The SDK includes the Steam Workshop Uploader and FireTuner — a debugging tool that lets you run JavaScript commands and access in-game editor panels.
+    </Card>
+
+    <Card title="SQLite Database Browser" icon="database" href="https://github.com/beekeeper-studio/beekeeper-studio/" cta="Download Beekeeper Studio" arrow="true">
+      Optional, but useful once your mods get complex. Lets you inspect the game's debug database to understand available data.
+    </Card>
+  </Tab>
+
+  <Tab title="Important folders" icon="folder">
+    **Game installation folder** — Mods follow the same structure as the game itself. If you're on Steam, find it via right-click → Properties → Installed Files → Browse.
+
+    **User data folder** — This is where you install mods manually and access logs:
+
+    | Platform | Path |
+    |---|---|
+    | Windows | `%localappdata%/Firaxis Games/Sid Meier's Civilization VII/` |
+    | Mac | `~/Library/Application Support/Civilization VII/` |
+    | Linux/Steam Deck | `~/My Games/Sid Meier's Civilization VII/` |
+
+    Create a `Mods` folder there if one doesn't exist.
+  </Tab>
+
+  <Tab title="Settings" icon="gear">
+    First, enable file extensions in your file browser so you can see and change `.modinfo`, `.xml`, `.sql` extensions.
+
+    Then open `AppOptions.txt` (same folder as your `Mods` directory). Uncomment and set these options:
+
+    ```ini
+    ;Before:
+    ;CopyDatabasesToDisk 0
+
+    ;After:
+    CopyDatabasesToDisk 1
+    ```
+
+    **Recommended settings:**
+
+    | Setting | Value | Purpose |
+    |---|---|---|
+    | `CopyDatabasesToDisk` | `1` | Exports `.sqlite` files for browsing the game database |
+    | `EnableTuner` | `1` | Allows FireTuner to connect for debugging |
+    | `EnableDebugPanels` | `1` | Enables in-game debug panels via backtick key |
+    | `UIDebugger` | `1` | Lets you use Chrome DevTools to inspect game UI |
+    | `UIFileWatcher` | `1` | Reloads UI files automatically as you edit them |
+  </Tab>
+</Tabs>
+
+## Your first mod
+
+<Steps>
+  <Step title="Create the mod folder">
+    In your `Mods` folder, create a new empty folder. Name it whatever you like.
+  </Step>
+
+  <Step title="Create the .modinfo file">
+    Inside that folder, create a new file with the `.modinfo` extension. Open it in your code editor and paste the following:
+
+    ```xml
+    <?xml version="1.0" encoding="utf-8"?>
+    <Mod id="my-first-mod" version="1" xmlns="ModInfo">
+      <Properties>
+        <Name>My First Mod</Name>
+        <Description>This is my first Mod.</Description>
+        <Authors>Me</Authors>
+        <AffectsSavedGames>1</AffectsSavedGames>
+      </Properties>
+      <Dependencies>
+      </Dependencies>
+      <ActionCriteria>
+      </ActionCriteria>
+      <ActionGroups>
+      </ActionGroups>
+    </Mod>
+    ```
+  </Step>
+
+  <Step title="Launch the game">
+    Boot up Civilization VII. Your mod should appear in the Add-Ons menu. It doesn't do anything yet, but the skeleton is in place.
+  </Step>
+</Steps>
+
+## Wrapping up
+
+<Note>
+  The `id` in the first line should be unique. Multiple mods with the same ID are treated as different versions of the same mod. Use a personal prefix (like `jsmith-my-mod`) to avoid collisions.
+</Note>
+
+The `Properties` fields (`Name`, `Description`, `Authors`) are displayed in the Add-Ons screen. Set `AffectsSavedGames` to `0` for mods that only change the UI or localization — those can be toggled mid-game.
+
+**Where to go next:**
+- Learn how `.modinfo` files are structured: [modinfo Files](/guides/official/modinfo-files)
+- Make your mod actually do something: [Database Modding](/guides/official/database-modding)
+
+<Tip>
+  Don't worry if you feel overwhelmed. A lot of modding is learned by examining examples and slowly building intuition. Even experienced modders copy from existing game files and adapt them. You're not expected to memorize any of this.
+</Tip>

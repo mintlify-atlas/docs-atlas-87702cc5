@@ -1,0 +1,182 @@
+---
+title: "Creating Buildings & Improvements"
+description: "Use ConstructibleBuilder to define custom buildings, tile improvements, and their yield changes."
+---
+
+Buildings are constructed within districts and provide bonuses to cities. Improvements are built on map tiles outside cities. Both use `ConstructibleBuilder`.
+
+## Creating a building
+
+```typescript
+import {
+  ACTION_GROUP_BUNDLE,
+  CONSTRUCTIBLE_TYPE_TAG,
+  ConstructibleBuilder,
+  DISTRICT,
+  Mod,
+  YIELD
+} from "civ7-modding-tools";
+
+const mod = new Mod({
+  id: "my-building-mod",
+  version: "1.0",
+});
+
+const trainingGrounds = new ConstructibleBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+
+  constructible: {
+    constructibleType: "BUILDING_TRAINING_GROUNDS",
+  },
+
+  // Mark as a building (vs improvement)
+  building: {},
+
+  // Classification tags
+  typeTags: [
+    CONSTRUCTIBLE_TYPE_TAG.AGELESS,
+    CONSTRUCTIBLE_TYPE_TAG.PRODUCTION,
+    CONSTRUCTIBLE_TYPE_TAG.MILITARY,
+  ],
+
+  // Districts where this building can be placed
+  constructibleValidDistricts: [
+    DISTRICT.URBAN,
+    DISTRICT.CITY_CENTER,
+  ],
+
+  // Yield bonuses
+  constructibleYieldChanges: [
+    { yieldType: YIELD.PRODUCTION, yieldChange: 2 },
+  ],
+
+  // Upkeep
+  constructibleMaintenances: [
+    { yieldType: YIELD.GOLD, amount: 2 },
+  ],
+
+  localizations: [{
+    name: "Training Grounds",
+    description: "Military training facility.",
+    tooltip: "+2 Production. Costs 2 Gold per turn."
+  }]
+});
+
+mod.add([trainingGrounds]).build("./dist");
+```
+
+## Creating an improvement
+
+Improvements are built on map tiles and provide tile-level bonuses:
+
+```typescript
+const sacredGrove = new ConstructibleBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+
+  constructible: {
+    constructibleType: "IMPROVEMENT_SACRED_GROVE",
+  },
+
+  // Mark as an improvement
+  improvement: {
+    resourceTier: 0,
+    cityBuildable: true
+  },
+
+  typeTags: [
+    CONSTRUCTIBLE_TYPE_TAG.AGELESS,
+    CONSTRUCTIBLE_TYPE_TAG.CULTURE,
+    CONSTRUCTIBLE_TYPE_TAG.HAPPINESS,
+  ],
+
+  // Terrain types where this can be placed
+  constructibleValidTerrains: [
+    TERRAIN.GRASS,
+    TERRAIN.PLAINS
+  ],
+
+  constructibleYieldChanges: [
+    { yieldType: YIELD.CULTURE, yieldChange: 1 },
+    { yieldType: YIELD.HAPPINESS, yieldChange: 1 },
+  ],
+
+  localizations: [{
+    name: "Sacred Grove",
+    description: "A sacred natural area.",
+    tooltip: "+1 Culture and +1 Happiness."
+  }]
+});
+```
+
+## Key components
+
+### For buildings
+
+| Property | Description |
+|---|---|
+| `constructible.constructibleType` | Unique type identifier |
+| `building: {}` | Marks this as a building |
+| `typeTags` | Classification (e.g., `AGELESS`, `PRODUCTION`, `MILITARY`, `UNIQUE`) |
+| `constructibleValidDistricts` | Districts where the building can be placed |
+| `constructibleYieldChanges` | Yield bonuses provided |
+| `constructibleMaintenances` | Upkeep costs |
+
+### For improvements
+
+| Property | Description |
+|---|---|
+| `improvement` | Marks as improvement; set `resourceTier` and `cityBuildable` |
+| `constructibleValidTerrains` | Terrain types where the improvement can be placed |
+| `constructibleValidResources` | Resources required on the tile |
+
+## Building prerequisites
+
+Require another building before this one can be constructed:
+
+```typescript
+const advancedBuilding = new ConstructibleBuilder({
+  // ...
+  constructiblePrereqs: [
+    { constructibleType: "BUILDING_WORKSHOP" }
+  ],
+});
+```
+
+## Resource-gated improvements
+
+An improvement that can only be placed on tiles with a specific resource:
+
+```typescript
+const ironForge = new ConstructibleBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  constructible: { constructibleType: "IMPROVEMENT_IRON_FORGE" },
+  improvement: { resourceTier: 1, cityBuildable: false },
+  constructibleValidResources: [RESOURCE.IRON],
+  constructibleYieldChanges: [
+    { yieldType: YIELD.PRODUCTION, yieldChange: 2 },
+  ],
+  localizations: [{
+    name: "Iron Forge",
+    description: "Built on Iron deposits for extra production."
+  }]
+});
+```
+
+## Binding to a civilization
+
+To make a building civilization-specific, bind it to a `CivilizationBuilder`:
+
+```typescript
+const myCiv = new CivilizationBuilder({ /* ... */ });
+const uniqueBuilding = new ConstructibleBuilder({ /* ... */ });
+
+myCiv.bind([uniqueBuilding]);
+mod.add([myCiv, uniqueBuilding]).build("./dist");
+```
+
+## Related guides
+
+- [Creating Units](/guides/typescript/creating-units)
+- [Creating Civilizations](/guides/typescript/creating-civilizations)
+- [Unique Quarters](/guides/typescript/unique-quarters) — combine buildings into a quarter
+- [Modifiers & Effects](/guides/typescript/modifiers-and-effects)

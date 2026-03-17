@@ -1,0 +1,86 @@
+---
+title: 'CLI overview'
+description: 'The `civ7` CLI lets you explore Civilization VII XML data, render dependency graphs, zip and unzip resource archives, and manage mods as git subtrees.'
+---
+
+The `civ7` CLI is the primary tool for working with Civilization VII modding resources from the command line. It is built on [oclif](https://oclif.io/) and ships as the `@mateicanavra/civ7-cli` package.
+
+## What the CLI does
+
+- **Explore game XML** — Build an in-memory index of Civ-style XML and perform a breadth-first crawl from a seed entity (e.g., `LEADER_AMANITORE`, `CIVILIZATION_ROME`). Produce a dependency graph in JSON and DOT format, plus a `manifest.txt` listing every source file touched.
+- **Render graphs** — Convert DOT output to SVG using a WebAssembly Graphviz engine with no native dependency required. Optionally emit an interactive HTML viewer with pan, zoom, and keyboard navigation.
+- **Zip and unzip archives** — Package or extract resource archives based on named profiles defined in `civ.config.jsonc`.
+- **Manage mods via git subtree** — Register, import, pull, push, and remove mod repositories as git subtrees under `mods/<slug>`.
+- **Serve docs** — Start the Mintlify or Docsify documentation site locally with automatic resource syncing.
+
+## Installation
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/mateicanavra/civ7-modding-tools
+    cd civ7-modding-tools
+    ```
+  </Step>
+  <Step title="Install dependencies">
+    Requires [Bun](https://bun.sh/) and Node.js >= 22.14.
+    ```bash
+    bun install --frozen-lockfile
+    ```
+  </Step>
+  <Step title="Link the CLI binary">
+    Run the link script from the repo root to expose the `civ7` binary globally.
+    ```bash
+    bun run link:cli
+    ```
+  </Step>
+  <Step title="Verify">
+    ```bash
+    civ7 --version
+    civ7 --help
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  You can also run commands without installing globally using `node packages/cli/bin/run.js <command>` from the repo root, or via `bun run --filter @mateicanavra/civ7-cli dev -- <command>`.
+</Note>
+
+## Command topics
+
+<CardGroup cols={2}>
+  <Card title="data" icon="database" href="/cli/commands/data-crawl">
+    Crawl XML resources, explore relationships, render graphs, and zip outputs.
+  </Card>
+  <Card title="mod git" icon="code-branch" href="/cli/commands/mod-git">
+    Configure and sync mod repositories via git subtree — setup, import, pull, push, status, list, clear, remove, update.
+  </Card>
+  <Card title="docs" icon="book" href="/cli/commands/docs">
+    Serve the project documentation site locally with Mintlify or Docsify.
+  </Card>
+  <Card title="Configuration" icon="sliders" href="/cli/configuration">
+    Full reference for `civ.config.jsonc` — inputs, outputs, and profiles.
+  </Card>
+</CardGroup>
+
+## Data commands at a glance
+
+| Command | Description |
+|---|---|
+| [`civ7 data crawl`](/cli/commands/data-crawl) | Crawl XML from a seed and produce `graph.json`, `graph.dot`, `manifest.txt` |
+| [`civ7 data explore`](/cli/commands/data-explore) | Full pipeline: crawl → render → open viewer |
+| [`civ7 data render`](/cli/commands/data-render) | Render a DOT file to SVG |
+| [`civ7 data slice`](/cli/commands/data-slice) | Copy files from a `manifest.txt` into a destination folder |
+| [`civ7 data zip`](/cli/commands/data-zip) | Create a zip archive from a profile |
+| [`civ7 data unzip`](/cli/commands/data-unzip) | Extract a resource archive |
+
+## All commands support `--help`
+
+Every command exposes `--help` via oclif:
+
+```bash
+civ7 data crawl --help
+civ7 mod git setup --help
+```
+
+Status-style commands (e.g., `mod git status`, `mod git list`) also accept `--json` for machine-readable output.

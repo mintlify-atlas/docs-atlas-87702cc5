@@ -1,0 +1,165 @@
+---
+title: 'Configuration'
+description: 'Full reference for civ.config.jsonc — inputs, outputs, profiles, and how the CLI discovers your workspace root.'
+---
+
+The `civ7` CLI is configured via a `civ.config.jsonc` file at the root of your workspace. This file uses [JSONC](https://github.com/microsoft/node-jsonc-parser) (JSON with comments), which means you can annotate values inline.
+
+## Workspace root discovery
+
+When you run any `civ7` command, the CLI automatically locates the workspace root by walking up the directory tree from `process.cwd()` until it finds a `package.json` that declares a `workspaces` field. The `civ.config.jsonc` is then loaded from that root.
+
+You can bypass discovery by passing `--config` with an explicit path:
+
+```bash
+civ7 data crawl LEADER_AMANITORE --config /path/to/civ.config.jsonc
+```
+
+## Annotated example
+
+This is the `civ.config.jsonc` used in the main repository:
+
+```jsonc
+{
+  // JSON Schema for editor auto-complete and validation
+  "$schema": "./packages/config/schema/civ.config.schema.json",
+
+  "inputs": {
+    // Absolute path to your Civilization VII installation.
+    // On macOS (Steam): ~/Library/Application Support/Steam/steamapps/common/
+    //   Sid Meier's Civilization VII/CivilizationVII.app/Contents/Resources
+    // Uncomment and set this to enable `data zip`.
+    // "installDir": "/absolute/path/to/game/resources"
+  },
+
+  "outputs": {
+    // Base directory for all CLI outputs, relative to workspace root.
+    "baseDir": ".civ7/outputs",
+
+    "zip": {
+      // Subdirectory (under baseDir) where zip archives are stored.
+      "dir": "archives",
+      // Default archive filename.
+      "name": "civ7-official-resources.zip"
+    },
+
+    "unzip": {
+      // Subdirectory (under baseDir) where archives are extracted.
+      // This path is also used as the XML root directory for crawl/explore.
+      "dir": "resources"
+    },
+
+    "graph": {
+      // Subdirectory (under baseDir) where graph outputs are stored.
+      "dir": "graph"
+    }
+  },
+
+  "profiles": {
+    "default": {
+      "description": "Core gameplay data, excluding large assets. Used by the official docs site.",
+      "zip": {
+        "exclude": [
+          "*/Platforms/*", "*/movies/*", "*/data/icons/*", "*/fonts/*",
+          "*/Assets/Benchmark/*", "*/Assets/Legal/*", "Assets.car",
+          "AppIcon.icns", "default.metallib", "ShaderAutoGen_*",
+          "*.mp4", "*.webm", "*.mov", "*.ogg", "*.mp3", "*.wav",
+          "*.dds", "*.png", "*.ttf", "*.otf", "*.js.map"
+        ]
+      }
+    },
+
+    "full": {
+      "description": "A complete set of game resources, including all assets.",
+      "zip": {
+        "exclude": []
+      }
+    },
+
+    "assets": {
+      "description": "Only media assets like icons, fonts, and movies.",
+      "zip": {
+        "include": [
+          "Assets/*", "movies/*", "data/icons/*", "fonts/*",
+          "Assets.car", "AppIcon.icns", "default.metallib", "ShaderAutoGen_*"
+        ]
+      }
+    }
+  }
+}
+```
+
+## Field reference
+
+### `inputs`
+
+<ParamField body="inputs.installDir" type="string">
+  Absolute path to the Civilization VII installation directory. This is the source of truth for `data zip`. The CLI does not attempt to auto-detect the install location.
+
+  **macOS (Steam):**
+  ```
+  ~/Library/Application Support/Steam/steamapps/common/Sid Meier's Civilization VII/CivilizationVII.app/Contents/Resources
+  ```
+</ParamField>
+
+### `outputs`
+
+<ParamField body="outputs.baseDir" type="string" default=".civ7/outputs">
+  Base directory for all CLI-generated outputs, relative to the workspace root. All other output paths (`zip.dir`, `unzip.dir`, `graph.dir`) are resolved relative to this value.
+</ParamField>
+
+<ParamField body="outputs.unzip.dir" type="string" default="resources">
+  Subdirectory (under `baseDir`) where archives are extracted by `data unzip`. This path is also used as the **XML root directory** by `data crawl`, `data explore`, and `data slice` when `--root` is not specified.
+</ParamField>
+
+<ParamField body="outputs.zip.dir" type="string" default="archives">
+  Subdirectory (under `baseDir`) where zip archives are written by `data zip`.
+</ParamField>
+
+<ParamField body="outputs.zip.name" type="string" default="civ7-official-resources.zip">
+  Default filename for the zip archive produced by `data zip`.
+</ParamField>
+
+<ParamField body="outputs.graph.dir" type="string" default="graph">
+  Subdirectory (under `baseDir`) used as the base for graph output directories.
+</ParamField>
+
+### `profiles`
+
+Profiles are named configurations that override defaults for `data zip` and `data unzip`. Select a profile with the `profile` argument:
+
+```bash
+civ7 data zip full
+civ7 data unzip assets
+```
+
+<ParamField body="profiles.<name>.description" type="string">
+  Human-readable description for the profile. Shown in warnings when the profile is not found.
+</ParamField>
+
+<ParamField body="profiles.<name>.zip.include" type="string[]">
+  Glob patterns for files to include in the archive. When specified, only matching files are added.
+</ParamField>
+
+<ParamField body="profiles.<name>.zip.exclude" type="string[]">
+  Glob patterns for files to exclude from the archive. Applied after `include`.
+</ParamField>
+
+## The `--profile` flag
+
+All `data` commands accept `--profile` to select a named configuration. When a profile is not found in the config file, the CLI warns and falls back to default settings.
+
+```bash
+civ7 data crawl LEADER_AMANITORE --profile default
+civ7 data zip full --config ./custom.jsonc
+```
+
+## Troubleshooting
+
+<Warning>
+  **"Could not determine XML root directory"** — This error means neither `--root` was passed nor `outputs.unzip.dir` is defined in the config. Either add the field to `civ.config.jsonc` or pass `--root /path/to/resources` directly.
+</Warning>
+
+<Tip>
+  Use the `$schema` field in your `civ.config.jsonc` to enable editor auto-complete and inline validation via the bundled JSON Schema.
+</Tip>

@@ -1,0 +1,423 @@
+---
+title: 'Modding reference'
+description: 'Comprehensive reference for Civilization VII modding, covering key game entities, XML tables, schemas, and patterns.'
+keywords: ['modding', 'reference', 'civilizations', 'leaders', 'units', 'buildings', 'xml', 'schemas']
+---
+
+This page documents the key game entities, file schemas, and XML structures you need to know when creating mods for Civilization VII.
+
+<Note>
+  The default `civ7-official-resources` archive excludes movies, `data/icons/`, fonts, and common media files (`.mp4`, `.dds`, `.png`) while retaining `Assets/schema` for reference. Use the `full` profile when extracting if you need those directories.
+</Note>
+
+## Game schema files
+
+Civilization VII stores its data in a relational database structure. The schema files define the tables, columns, relationships, and constraints that govern all game elements.
+
+<AccordionGroup>
+  <Accordion title="Core gameplay schema">
+    **File path:** `<GAME_RESOURCES>/Base/Assets/schema/gameplay/01_GameplaySchema.sql`
+
+    This file defines the core gameplay database structure — the foundation for all gameplay elements. It contains primary tables for:
+
+    - Civilization definitions and traits
+    - Leader properties and agendas
+    - Unit specifications and promotions
+    - Building and improvement data
+    - Gameplay mechanics relationships
+
+    Read this file first when you need to understand how a game entity is structured.
+  </Accordion>
+
+  <Accordion title="Modding framework schema">
+    **File path:** `<GAME_RESOURCES>/Base/Assets/schema/modding/schema-modding-10.sql`
+
+    This schema defines how mods are discovered, loaded, and applied. Understanding it is crucial for packaging mods correctly.
+
+    ```sql
+    -- Primary table of all discovered mods
+    CREATE TABLE Mods(
+        'ModRowId' INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        'ScannedFileRowId' INTEGER NOT NULL,
+        'ModId' TEXT NOT NULL,
+        'Version' INTEGER NOT NULL,
+        'Disabled' BOOLEAN,
+        FOREIGN KEY(ScannedFileRowId) REFERENCES ScannedFiles(ScannedFileRowId)
+    );
+
+    -- Properties for each mod (name/value pairs)
+    CREATE TABLE ModProperties(
+        'ModRowId' INTEGER NOT NULL,
+        'Name' TEXT NOT NULL,
+        'Value' TEXT,
+        PRIMARY KEY ('ModRowId', 'Name'),
+        FOREIGN KEY ('ModRowId') REFERENCES Mods('ModRowId') ON DELETE CASCADE
+    );
+
+    -- Actions that mods perform at load time
+    CREATE TABLE Actions(
+        'ActionRowId' INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        'ActionGroupRowId' INTEGER NOT NULL,
+        'ActionType' TEXT NOT NULL,
+        FOREIGN KEY('ActionGroupRowId') REFERENCES ActionGroups('ActionGroupRowId')
+    );
+    ```
+
+    **Supported action types:**
+
+    | Action type | Purpose |
+    |---|---|
+    | `UpdateDatabase` | Add or modify game database rows via XML |
+    | `UpdateText` | Add or update localized text strings |
+    | `ReplaceUIScript` | Replace a UI JavaScript file |
+    | `AddUserInterfaces` | Add custom UI components |
+    | `ImportFiles` | Import external asset files |
+  </Accordion>
+
+  <Accordion title="Icon management schema">
+    **File path:** `<GAME_RESOURCES>/Base/Assets/schema/icons/IconManager.sql`
+
+    Controls how icons for civilizations, units, buildings, and other elements are registered and displayed.
+
+    ```sql
+    CREATE TABLE 'Icons' (
+        'ID' TEXT NOT NULL,
+        'Context' TEXT DEFAULT 'DEFAULT',
+        PRIMARY KEY('ID','Context')
+    );
+
+    CREATE TABLE 'IconDefinitions' (
+        'ID' TEXT NOT NULL,
+        'Context' TEXT NOT NULL DEFAULT 'DEFAULT',
+        'IconSize' INTEGER NOT NULL DEFAULT 0,
+        'Path' TEXT NOT NULL,
+        'NeedsTinting' INTEGER DEFAULT 0,
+        'FitToContent' INTEGER DEFAULT 0,
+        PRIMARY KEY('ID', 'Context', 'IconSize')
+    );
+    ```
+
+    Icons are defined in multiple sizes for different UI contexts. A typical civilization icon set includes sizes: 32, 45, 50, 64, and 80.
+
+    ```xml
+    <IconDefinitions>
+      <Row ID="ICON_CIVILIZATION_CUSTOM" Size="32" Path="civ_sym_custom_32.dds"/>
+      <Row ID="ICON_CIVILIZATION_CUSTOM" Size="64" Path="civ_sym_custom_64.dds"/>
+    </IconDefinitions>
+    ```
+  </Accordion>
+
+  <Accordion title="Localization schema">
+    **File paths:**
+    - `<GAME_RESOURCES>/Base/Assets/schema/loc/schema-loc-10.sql`
+    - `<GAME_RESOURCES>/Base/Assets/schema/loc/schema-loc-20-languages.sql`
+
+    All in-game text is stored as tagged strings in the `LocalizedText` table.
+
+    ```sql
+    CREATE TABLE "LocalizedText" (
+        "Tag" TEXT NOT NULL,
+        "Language" TEXT NOT NULL,
+        "Text" TEXT NOT NULL,
+        PRIMARY KEY("Tag", "Language")
+    );
+    ```
+
+    Add localization entries in your mod's text files:
+
+    ```xml
+    <GameData>
+      <LocalizedText>
+        <Row Tag="LOC_CIVILIZATION_CUSTOM_NAME" Language="en_US" Text="My Civilization"/>
+        <Row Tag="LOC_CIVILIZATION_CUSTOM_ADJECTIVE" Language="en_US" Text="Custom"/>
+      </LocalizedText>
+    </GameData>
+    ```
+  </Accordion>
+
+  <Accordion title="World builder map schema">
+    **File path:** `<GAME_RESOURCES>/Base/Assets/schema/worldbuilder/MapSchema.sql`
+
+    Defines the structure for map generation and world building. Important for mods that create custom maps or affect world generation.
+
+    ```sql
+    CREATE TABLE "Map" (
+        "ID" TEXT NOT NULL,
+        "Width" INTEGER,
+        "Height" INTEGER,
+        "TopLatitude" INTEGER,
+        "BottomLatitude" INTEGER,
+        "WrapX" BOOLEAN,
+        "WrapY" BOOLEAN,
+        "MapSizeType" TEXT,
+        PRIMARY KEY(ID));
+
+    CREATE TABLE "Plots" (
+        "ID" INTEGER NOT NULL,
+        "TerrainType" TEXT NOT NULL,
+        "BiomeType" TEXT,
+        "ContinentType" TEXT,
+        "Elevation" INTEGER,
+        "IsImpassable" BOOLEAN,
+        PRIMARY KEY(ID));
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Key definition files
+
+The `base-standard` module contains `.civdb` definition files that describe the schema for core game objects. These are your primary reference when modding.
+
+| File | What it defines |
+|---|---|
+| `civilization.civdb` | Civilization types, traits, unique units, buildings, and domain assignments |
+| `leader.civdb` | Leader types, attributes, agendas, and civilization compatibility |
+| `unit.civdb` | Unit types, classes, combat stats, abilities, and production costs |
+| `constructible.civdb` | Buildings, improvements, quarters, yields, and adjacency rules |
+| `modifier-system.civdb` | Effects, requirements, and how modifiers connect to traits |
+| `victory.civdb` | Victory condition definitions |
+| `diplomacy.civdb` | Diplomatic relationships and action types |
+| `age.civdb` | Age mechanics and transition rules |
+
+**File path:** `<GAME_RESOURCES>/Base/modules/base-standard/definitions/*.civdb`
+
+## Age system
+
+Civilization VII divides gameplay into three Ages. Each Age has its own set of civilizations, units, buildings, and a `config.xml` file that defines its properties.
+
+<AccordionGroup>
+  <Accordion title="Antiquity (3000 BCE – 500 CE)">
+    **Module path:** `<GAME_RESOURCES>/Base/modules/age-antiquity/`
+
+    **Domain:** `AntiquityAgeCivilizations`
+
+    **Civilizations:** Egypt, Rome, Greece, Persia, Han, Aksum, Khmer, Maurya, Maya, Mississippian
+
+    **Unique directories:** `wonders/`, `religion/`, `independent-powers/`
+
+    ```xml
+    <Ages>
+      <Row AgeType="AGE_ANTIQUITY"
+           Name="LOC_AGE_ANTIQUITY_NAME"
+           PlayerCivilizationDomain="AntiquityAgeCivilizations"
+           DefeatDomain="AntiquityDefeats"
+           VictoryDomain="AntiquityVictories"
+           SortIndex="10"/>
+    </Ages>
+    ```
+  </Accordion>
+
+  <Accordion title="Exploration (500 CE – 1700 CE)">
+    **Module path:** `<GAME_RESOURCES>/Base/modules/age-exploration/`
+
+    **Domain:** `ExplorationAgeCivilizations`
+
+    **Civilizations:** Spain, Norman, Ming, Abbasid, Chola, Hawaii, Inca, Majapahit, Mongolia, Songhai
+
+    **Unique directories:** `religion/`, `naval/`, `trade/`, `legacies/`, `distant-lands/`
+
+    ```xml
+    <Ages>
+      <Row AgeType="AGE_EXPLORATION"
+           Name="LOC_AGE_EXPLORATION_NAME"
+           PlayerCivilizationDomain="ExplorationAgeCivilizations"
+           SortIndex="20"/>
+    </Ages>
+    ```
+  </Accordion>
+
+  <Accordion title="Modern (1700 CE – Present)">
+    **Module path:** `<GAME_RESOURCES>/Base/modules/age-modern/`
+
+    **Domain:** `ModernAgeCivilizations`
+
+    **Civilizations:** America, Russia, Prussia, French Empire, Mexico, Mughal, Meiji, Qing, Buganda, Siam
+
+    **Unique directories:** `victories/`, `global-systems/`, `advanced-units/`, `projects/`, `diplomacy/`
+
+    ```xml
+    <Ages>
+      <Row AgeType="AGE_MODERN"
+           Name="LOC_AGE_MODERN_NAME"
+           PlayerCivilizationDomain="ModernAgeCivilizations"
+           SortIndex="30"/>
+    </Ages>
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Age transitions
+
+When an Age ends, the player selects a new civilization for the next Age. Certain elements persist across transitions:
+
+| Persistent element | Notes |
+|---|---|
+| Leaders | The same leader continues into the next Age |
+| Wonders | Marked `Ageless`; cannot be removed |
+| Unique Quarters | Remain on the map as Ageless structures |
+| Commander units | Retain attributes and experience |
+| Traditions | Unlocked from civic trees remain available |
+
+When creating a civilization mod, define which civilizations it can unlock at Age transition:
+
+```xml
+<CivilizationUnlocks>
+  <Row CivilizationType="CIVILIZATION_CUSTOM"
+       AgeDomain="StandardAges"
+       AgeType="AGE_EXPLORATION"
+       Type="CIVILIZATION_MAJAPAHIT"
+       Kind="KIND_CIVILIZATION"
+       Name="LOC_CIVILIZATION_MAJAPAHIT_NAME"
+       Icon="CIVILIZATION_MAJAPAHIT"/>
+</CivilizationUnlocks>
+```
+
+## Common XML patterns
+
+### Defining a civilization
+
+```xml
+<GameData>
+  <Civilizations>
+    <Row CivilizationType="CIVILIZATION_CUSTOM"
+         Name="LOC_CIVILIZATION_CUSTOM_NAME"
+         Adjective="LOC_CIVILIZATION_CUSTOM_ADJECTIVE"
+         Description="LOC_CIVILIZATION_CUSTOM_DESCRIPTION"
+         Icon="ICON_CIVILIZATION_CUSTOM"/>
+  </Civilizations>
+
+  <CivilizationTraits>
+    <Row CivilizationType="CIVILIZATION_CUSTOM"
+         TraitType="TRAIT_CIVILIZATION_CUSTOM_ABILITY"/>
+  </CivilizationTraits>
+
+  <CivilizationDomains>
+    <Row CivilizationType="CIVILIZATION_CUSTOM"
+         Domain="AntiquityAgeCivilizations"/>
+  </CivilizationDomains>
+</GameData>
+```
+
+### Defining a leader
+
+```xml
+<Leaders>
+  <Row LeaderType="LEADER_CUSTOM"
+       Name="LOC_LEADER_CUSTOM_NAME"
+       InheritFrom="LEADER_DEFAULT"
+       SceneLighting="LEADER_CUSTOM_LIGHTING"/>
+</Leaders>
+
+<LeaderTraits>
+  <Row LeaderType="LEADER_CUSTOM"
+       TraitType="TRAIT_LEADER_CUSTOM_ABILITY"/>
+</LeaderTraits>
+
+<!-- Set historical bias — Bias 4 = strong historical match -->
+<LeaderCivilizationBias>
+  <Row CivilizationDomain="AntiquityAgeCivilizations"
+       CivilizationType="CIVILIZATION_CUSTOM"
+       LeaderDomain="StandardLeaders"
+       LeaderType="LEADER_CUSTOM"
+       Bias="4"
+       ReasonType="LOC_UNLOCK_PLAY_AS_CUSTOM_TOOLTIP"
+       ChoiceType="LOC_CREATE_GAME_HISTORICAL_CHOICE"/>
+</LeaderCivilizationBias>
+```
+
+### Defining a unique unit
+
+```xml
+<Units>
+  <Row UnitType="UNIT_CUSTOM_WARRIOR"
+       Name="LOC_UNIT_CUSTOM_WARRIOR_NAME"
+       Domain="DOMAIN_LAND"
+       FormationClass="FORMATION_CLASS_LAND_COMBAT"
+       Cost="65"
+       Maintenance="1"
+       BaseMoves="2"
+       Combat="36"
+       ReplacesUnitType="UNIT_SWORDSMAN"/>
+</Units>
+
+<CivilizationUniqueUnits>
+  <Row CivilizationType="CIVILIZATION_CUSTOM"
+       UnitType="UNIT_CUSTOM_WARRIOR"/>
+</CivilizationUniqueUnits>
+```
+
+### Mod structure and `.modinfo`
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<Mod id="your-unique-mod-id" version="1">
+  <Properties>
+    <Name>Your Mod Name</Name>
+    <Description>Brief description</Description>
+    <AffectsSavedGames>true</AffectsSavedGames>
+    <CompatibleVersions>1.0</CompatibleVersions>
+  </Properties>
+  <Dependencies>
+    <Mod id="base-standard" />
+    <Mod id="age-antiquity" />
+  </Dependencies>
+  <ActionCriteria>
+    <Criteria id="Gameplay">
+      <ModInUse>base-standard</ModInUse>
+    </Criteria>
+  </ActionCriteria>
+  <ActionGroups>
+    <ActionGroup id="main" scope="game" criteria="Gameplay">
+      <Actions>
+        <UpdateDatabase>
+          <Item>civilizations/your_civilization.xml</Item>
+          <Item>units/your_units.xml</Item>
+        </UpdateDatabase>
+        <UpdateText>
+          <Item>text/en_US/your_text.xml</Item>
+        </UpdateText>
+        <UpdateIcons>
+          <Item>assets/icons/your_icons.xml</Item>
+        </UpdateIcons>
+      </Actions>
+    </ActionGroup>
+  </ActionGroups>
+</Mod>
+```
+
+## DLC patterns
+
+Official DLC provides the best reference for properly integrating new content. Study these structures:
+
+- **Leader files:** `<GAME_RESOURCES>/DLC/ada-lovelace/data/leaders/`
+- **Civilization files:** `<GAME_RESOURCES>/DLC/great-britain/data/civilizations/`
+
+Each entity typically has dedicated files:
+- `leader_[name].xml` — base definition
+- `leader_[name]_traits.xml` — unique abilities
+- `leader_[name]_agenda.xml` — AI behavior
+
+### Best practices from DLC
+
+1. **Complete implementation** — provide full file sets for each feature
+2. **Proper scoping** — gate content to the correct Age domain
+3. **Age continuity** — define logical civilization unlock transitions
+4. **Thorough localization** — tag all text strings, even descriptions
+5. **Icon sets** — provide icons at all required sizes (32, 45, 50, 64, 80)
+
+## Further reading
+
+<CardGroup cols={2}>
+  <Card title="Gameplay mechanics" icon="gears" href="/reference/gameplay-mechanics">
+    Age system, modifier framework, yield types, and combat systems.
+  </Card>
+  <Card title="Database schemas" icon="database" href="/reference/database-schemas">
+    SQL table structures for all key game entities.
+  </Card>
+  <Card title="File paths" icon="folder" href="/reference/file-paths">
+    Installation directories, output paths, and mod install locations.
+  </Card>
+  <Card title="Creating civilizations" icon="book" href="/guides/community/creating-civilizations">
+    Step-by-step guide for building a custom civilization.
+  </Card>
+</CardGroup>

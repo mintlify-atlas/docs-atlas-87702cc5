@@ -1,0 +1,74 @@
+---
+title: 'data render'
+description: 'Render a Graphviz DOT file to SVG using a WebAssembly engine — no native Graphviz installation required.'
+---
+
+`civ7 data render` converts a Graphviz DOT file to SVG using `@hpcc-js/wasm`, a WebAssembly-compiled build of Graphviz. No native `dot` binary is required on the host machine.
+
+```bash
+civ7 data render <input> [output]
+```
+
+## Arguments
+
+<ParamField path="input" type="string" required>
+  Path to the DOT file to render (e.g., `./out/LEADER_AMANITORE/graph.dot`).
+
+  You can also pass a seed name instead of a file path (e.g., `LEADER_AMANITORE`). When the input does not end in `.dot` and contains no path separator, the CLI resolves it to `out/<seed>/graph.dot` relative to the workspace root.
+</ParamField>
+
+<ParamField path="output" type="string">
+  Path to write the rendered SVG. Defaults to `graph.svg` in the same directory as the input file.
+</ParamField>
+
+## Flags
+
+<ParamField query="--engine" type="string" default="dot">
+  Graphviz layout engine to use. Accepted values: `dot`, `neato`, `fdp`, `sfdp`, `circo`, `twopi`.
+
+  - `dot` — hierarchical layout, best for dependency trees
+  - `neato` / `fdp` / `sfdp` — force-directed layouts, useful for large or undirected graphs
+  - `circo` / `twopi` — radial layouts
+</ParamField>
+
+<ParamField query="--format" type="string" default="svg">
+  Output format. Currently only `svg` is supported.
+</ParamField>
+
+<ParamField query="--config" type="string">
+  Path to a `civ.config.jsonc` file.
+</ParamField>
+
+<ParamField query="--profile" type="string" default="default">
+  Profile key to use from the config file.
+</ParamField>
+
+## Examples
+
+Render a DOT file to SVG in the same directory:
+
+```bash
+civ7 data render ./out/LEADER_AMANITORE/graph.dot
+```
+
+Render with an explicit output path:
+
+```bash
+civ7 data render ./out/LEADER_AMANITORE/graph.dot ./out/LEADER_AMANITORE/graph.svg
+```
+
+Pass a seed name as shorthand (resolves to `out/CIVILIZATION_ROME/graph.dot`):
+
+```bash
+civ7 data render CIVILIZATION_ROME
+```
+
+Use a force-directed layout for a densely connected graph:
+
+```bash
+civ7 data render ./out/CIVILIZATION_ROME/graph.dot --engine fdp
+```
+
+<Note>
+  To run the full crawl + render pipeline in one step, use [`civ7 data explore`](/cli/commands/data-explore).
+</Note>

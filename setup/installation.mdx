@@ -1,0 +1,137 @@
+---
+title: "Installation"
+description: "Set up the Civ7 Modding Tools repository, install dependencies, and link the CLI globally."
+---
+
+Setting up the project is a two-stage process: first install dependencies and link the CLI, then pull game data using the newly available `civ7` command. This page covers the first stage. See [Game data](/setup/game-data) for the second.
+
+## Prerequisites
+
+- **Node.js 22.14 or later** — the CLI's `engines` field requires this minimum version. Check your version with `node --version`.
+- **Bun** — used as the package manager and runtime throughout the monorepo. Install from [bun.sh](https://bun.sh).
+
+<CodeGroup>
+
+```bash macOS (Homebrew)
+brew install node
+curl -fsSL https://bun.sh/install | bash
+```
+
+```bash Linux
+# Node via nvm
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+nvm install 22
+
+# Bun
+curl -fsSL https://bun.sh/install | bash
+```
+
+```powershell Windows (winget)
+winget install OpenJS.NodeJS.LTS
+powershell -c "irm bun.sh/install.ps1 | iex"
+```
+
+</CodeGroup>
+
+## Steps
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/mateicanavra/civ7-modding-tools.git
+    cd civ7-modding-tools
+    ```
+  </Step>
+
+  <Step title="Install dependencies">
+    Run the following from the repo root. The `--frozen-lockfile` flag ensures your install matches the lockfile exactly — no surprise version updates.
+
+    ```bash
+    bun install --frozen-lockfile
+    ```
+
+    This installs all dependencies across the entire monorepo workspace, including the SDK, CLI, plugins, docs app, and playground.
+  </Step>
+
+  <Step title="Link the CLI globally">
+    This script builds the CLI package and links the `civ7` binary so it is available everywhere in your terminal:
+
+    ```bash
+    bun run link:cli
+    ```
+
+    Internally this runs `bun run build && bun link --global` inside `packages/cli/`, which compiles TypeScript to `dist/`, regenerates `oclif.manifest.json`, and registers the `civ7` binary with Bun's global bin directory.
+  </Step>
+
+  <Step title="Verify the installation">
+    Open a new terminal window and run:
+
+    ```bash
+    civ7 --help
+    ```
+
+    You should see a list of available commands including `data`, `docs`, `git`, and `mod` topics.
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="`civ7: command not found` after linking">
+    Bun installs global binaries to `~/.bun/bin`. If your shell cannot find `civ7`, add that directory to your `PATH`:
+
+    ```bash
+    # Add to ~/.zshrc or ~/.bashrc
+    export PATH="$HOME/.bun/bin:$PATH"
+    ```
+
+    Then reload your shell configuration:
+
+    ```bash
+    source ~/.zshrc  # or source ~/.bashrc
+    ```
+
+    If you are on a new terminal tab rather than a sourced session, just open a new terminal — most shells reload the profile automatically on login.
+  </Accordion>
+
+  <Accordion title="Wrong Node version">
+    The CLI requires Node 22.14+. If you have an older version installed, use `nvm` to switch:
+
+    ```bash
+    nvm install 22
+    nvm use 22
+    ```
+
+    The repo includes an `.nvmrc` file, so `nvm use` (without a version) will pick up the correct version automatically.
+  </Accordion>
+
+  <Accordion title="Lockfile mismatch error">
+    If `bun install --frozen-lockfile` fails with a lockfile conflict, it usually means local changes or a different Bun version. To reset:
+
+    ```bash
+    rm -rf node_modules
+    bun install --frozen-lockfile
+    ```
+
+    <Warning>
+      Do not commit a regenerated lockfile unless you intentionally updated dependencies.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="CLI changes not reflected after editing source">
+    The `civ7` binary runs compiled output from `dist/`. If you modify CLI source code, rebuild before running:
+
+    ```bash
+    bun run link:cli
+    ```
+
+    This rebuilds and relinks the binary.
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+With the CLI installed, configure your Civ7 install path and then pull game data:
+
+- [Configuration](/setup/configuration) — set `inputs.installDir` and customize output paths
+- [Game data](/setup/game-data) — run `bun run refresh:data` to extract game resources

@@ -1,0 +1,250 @@
+---
+title: "modinfo Files"
+description: "Full reference for .modinfo structure — Properties, Dependencies, ActionCriteria, ActionGroups, and all action types."
+---
+
+A `.modinfo` file is the linchpin of any mod. At its core it's an XML file with a specific structure and the `.modinfo` extension. It tells the game what files to load, what to do with them, how the mod relates to other mods and DLC, and stores basic info like the mod's name and author.
+
+If you've modded Civ VI, the structure will look familiar, though there are differences. For reference, check the `.modinfo` files in the example mods or in the game's own module and DLC directories — they use the same format.
+
+## Sample .modinfo file
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<Mod id="fxs-new-policies" version="1" xmlns="ModInfo">
+  <Properties>
+    <Name>Antiquity Policies</Name>
+    <Description>Adds new policies to the Antiquity Age</Description>
+    <Authors>Firaxis</Authors>
+    <AffectsSavedGames>1</AffectsSavedGames>
+  </Properties>
+  <Dependencies></Dependencies>
+  <References></References>
+  <ActionCriteria>
+    <Criteria id="antiquity-age-current">
+      <AgeInUse>AGE_ANTIQUITY</AgeInUse>
+    </Criteria>
+  </ActionCriteria>
+  <ActionGroups>
+    <ActionGroup id="antiquity-game" scope="game" criteria="antiquity-age-current">
+      <Actions>
+        <UpdateDatabase>
+          <Item>data/antiquity-traditions.xml</Item>
+        </UpdateDatabase>
+      </Actions>
+    </ActionGroup>
+  </ActionGroups>
+</Mod>
+```
+
+---
+
+## Structure reference
+
+### `<Mod>`
+
+The root element. Required attributes:
+
+| Attribute | Description |
+|---|---|
+| `id` | Unique identifier. Use lowercase letters, dashes, and a personal prefix (e.g., `jsmith-my-mod`). Max 64 characters. |
+| `version` | Version number. |
+| `xmlns` | Always `ModInfo`. |
+
+### `<Properties>`
+
+Mod metadata. All fields are optional, but include at minimum `Name`, `Description`, and `Authors`.
+
+| Element | Description |
+|---|---|
+| `Name` | Displayed in the Add-Ons screen. If empty, the mod won't appear there (though the game can still load it). |
+| `Description` | Short description shown in the Add-Ons screen. |
+| `Authors` | Author name(s). |
+| `AffectsSavedGames` | `1` = mod cannot be added/removed mid-game. Set to `1` for anything touching the gameplay database. `0` = can be toggled freely. Defaults to `1`. |
+| `ShowInBrowser` | `1` or `0`. Whether to show in the Add-Ons screen. Defaults to `1`. |
+| `EnabledByDefault` | `1` or `0`. Whether the mod is active by default. Defaults to `1`. |
+
+### `<Dependencies>`
+
+A list of mods that must be active for this mod to activate. Dependencies are loaded before this mod.
+
+```xml
+<Dependencies>
+  <Mod id="fxs-new-policies" title="LOC_MODULE_ANTIQUITY_POLICIES_NAME"/>
+</Dependencies>
+```
+
+All mods implicitly depend on `core`, `base-standard`, `age-antiquity`, `age-exploration`, and `age-modern`.
+
+### `<References>`
+
+A list of mods that are loaded before this one, without requiring them to be active.
+
+```xml
+<References>
+  <Mod id="friedrich-xerxes-alt" title="LOC_MODULE_FRIEDRICH_XERXES_ALT_NAME"/>
+</References>
+```
+
+---
+
+## ActionCriteria
+
+`Criteria` elements define conditions that must be met before an `ActionGroup` executes. Each must have a unique `id` (per mod).
+
+By default, all conditions in a `Criteria` must be met. Add `any="true"` to require only one.
+
+```xml
+<ActionCriteria>
+  <Criteria id="antiquity-age-current">
+    <AgeInUse>AGE_ANTIQUITY</AgeInUse>
+  </Criteria>
+  <Criteria id="not-antiquity-age">
+    <AgeInUse inverse="1">AGE_ANTIQUITY</AgeInUse>
+  </Criteria>
+  <Criteria id="always">
+    <AlwaysMet/>
+  </Criteria>
+  <Criteria id="mod-active" any="true">
+    <ModInUse>shawnee-tecumseh</ModInUse>
+    <ModInUse>fxs-norman-rework</ModInUse>
+  </Criteria>
+</ActionCriteria>
+```
+
+### Criterion types
+
+<AccordionGroup>
+  <Accordion title="AlwaysMet / NeverMet">
+    `AlwaysMet` — always passes. Use for ActionGroups that should always run.
+
+    `NeverMet` — never passes. Useful for disabling an ActionGroup temporarily.
+  </Accordion>
+
+  <Accordion title="AgeInUse / AgeWasUsed / AgeEverInUse">
+    `AgeInUse` — passes when the current Age matches. Valid values: `AGE_ANTIQUITY`, `AGE_EXPLORATION`, `AGE_MODERN`.
+
+    `AgeWasUsed` — passes if the Age was *previously* played (not the current one). Note: Advanced Starts do not count.
+
+    `AgeEverInUse` — combination of both: passes if the Age is current *or* was previously played.
+  </Accordion>
+
+  <Accordion title="ConfigurationValueMatches / ConfigurationValueContains">
+    `ConfigurationValueMatches` — checks if a game configuration parameter equals a specific value.
+
+    ```xml
+    <ConfigurationValueMatches>
+      <Group>Game</Group>
+      <ConfigurationId>SpeedType</ConfigurationId>
+      <Value>GAMESPEED_STANDARD</Value>
+    </ConfigurationValueMatches>
+    ```
+
+    `ConfigurationValueContains` — same, but accepts a comma-delimited list; passes if the parameter matches any listed value.
+
+    ```xml
+    <ConfigurationValueContains>
+      <Group>Game</Group>
+      <ConfigurationId>Handicap</ConfigurationId>
+      <Value>DIFFICULTY_PRINCE,DIFFICULTY_KING</Value>
+    </ConfigurationValueContains>
+    ```
+  </Accordion>
+
+  <Accordion title="MapInUse / RuleSetInUse / GameModeInUse">
+    `MapInUse` — passes when the current map matches the provided value (matched against the `File` column in the `Maps` table).
+
+    ```xml
+    <Criteria id="continents-plus">
+      <MapInUse>{base-standard}maps/continents-plus.js</MapInUse>
+    </Criteria>
+    ```
+
+    `RuleSetInUse` — checks if a given ruleset is in use. Default: `RULESET_STANDARD`.
+
+    `GameModeInUse` — value must be one of `WorldBuilder`, `SinglePlayer`, `HotSeat`, or `MultiPlayer`.
+  </Accordion>
+
+  <Accordion title="LeaderPlayable / CivilizationPlayable">
+    `LeaderPlayable` — passes if the specified leader is a valid configuration choice.
+
+    `CivilizationPlayable` — passes if the specified civilization is valid for the current Age.
+  </Accordion>
+
+  <Accordion title="ModInUse">
+    Passes when a mod with the matching `id` is active. Works for user mods and official DLC.
+
+    Optionally accepts a `Version` for exact version matching:
+
+    ```xml
+    <Criteria id="babylon-mod-active">
+      <ModInUse>
+        <Version>2.0</Version>
+        <Value>suk-abyssinia-civilization</Value>
+      </ModInUse>
+    </Criteria>
+    ```
+
+    Note: version matching is exact — `1` does not match `1.0`.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## ActionGroups
+
+`ActionGroup` elements contain the actions the mod takes when the criteria are met.
+
+```xml
+<ActionGroups>
+  <ActionGroup id="antiquity-game" scope="game" criteria="antiquity-age">
+    <Actions>
+      <UpdateDatabase>
+        <Item>data/antiquity-traditions.xml</Item>
+      </UpdateDatabase>
+    </Actions>
+  </ActionGroup>
+  <ActionGroup id="game-always" scope="game" criteria="always">
+    <Properties>
+      <LoadOrder>10</LoadOrder>
+    </Properties>
+    <Actions>
+      <UpdateText>
+        <Item>text/core-text.sql</Item>
+      </UpdateText>
+      <UIScripts>
+        <Item>ui/unit-flags/custom-flags.js</Item>
+      </UIScripts>
+      <ImportFiles>
+        <Item>textures/custom-flag-backing.png</Item>
+      </ImportFiles>
+    </Actions>
+  </ActionGroup>
+</ActionGroups>
+```
+
+Required attributes on `ActionGroup`:
+
+| Attribute | Description |
+|---|---|
+| `id` | Unique within the mod. |
+| `scope` | `game` or `shell`. |
+| `criteria` | The `id` of a `Criteria` defined in `ActionCriteria`. |
+
+### Action types
+
+| Action | Description |
+|---|---|
+| `UpdateDatabase` | Updates the shell or gameplay database with `.xml` or `.sql` files. |
+| `UpdateText` | Updates the Localization database. |
+| `UpdateIcons` | Updates the Icons database. |
+| `UpdateColors` | Updates the Colors database. |
+| `UpdateArt` | Updates art files (art tools not yet available to modders). |
+| `ImportFiles` | Imports files into the game's file system. Use for custom `.png` assets or to replace existing files. |
+| `UIScripts` | Loads `.js` files as new UI scripts. |
+| `UIShortcuts` | Loads `.html` files into the debug menu panel (`EnableDebugPanels` must be `1`). |
+| `UpdateVisualRemaps` | Updates the Visual Remap database to relink visuals onto different assets. |
+| `MapGenScripts` | Adds a `.js` script loaded during map generation, then unloaded. |
+| `ScenarioScripts` | Adds a `.js` gameplay script. |
+
+Each action contains `<Item>` child elements with a path relative to the `.modinfo` file.

@@ -1,0 +1,104 @@
+---
+title: "Constants overview"
+description: "All typed game constants exported by the SDK — units, abilities, effects, terrains, resources, ages, and more."
+---
+
+The SDK exports typed constant objects for all standard game identifiers. Import them from the package root:
+
+```typescript
+import {
+    UNIT,
+    UNIT_CLASS,
+    ABILITY,
+    EFFECT,
+    COLLECTION,
+    REQUIREMENT,
+    KIND,
+    AGE,
+    TERRAIN,
+    BIOME,
+    RESOURCE,
+    YIELD,
+    DISTRICT,
+    FEATURE,
+    TRAIT,
+    TAG_TRAIT,
+    ACTION_GROUP,
+    ACTION_GROUP_ACTION,
+    ACTION_GROUP_BUNDLE,
+} from '@mateicanavra/civ7-sdk';
+```
+
+All constants use `SCREAMING_SNAKE_CASE` and are defined `as const`, giving you precise literal types and full IntelliSense in any TypeScript editor.
+
+## All constant groups
+
+<CardGroup cols={2}>
+  <Card title="UNIT" icon="shield" href="/sdk/constants/units">
+    Base unit types (`UNIT_SCOUT`, `UNIT_ARCHER`, …)
+  </Card>
+  <Card title="UNIT_CLASS" icon="users" href="/sdk/constants/units">
+    Unit class tags controlling abilities and promotions (`UNIT_CLASS_RECON`, `UNIT_CLASS_INFANTRY`, …)
+  </Card>
+  <Card title="ABILITY" icon="bolt" href="/sdk/constants/abilities-effects">
+    Unit and civilization ability identifiers
+  </Card>
+  <Card title="EFFECT" icon="wand-magic-sparkles" href="/sdk/constants/abilities-effects">
+    Game effect types for modifiers (over 500 effects)
+  </Card>
+  <Card title="COLLECTION" icon="layer-group" href="/sdk/constants/abilities-effects">
+    Modifier collection scopes (`OWNER`, `ALL_CITIES`, …)
+  </Card>
+  <Card title="REQUIREMENT" icon="filter" href="/sdk/constants/abilities-effects">
+    Modifier requirement types
+  </Card>
+  <Card title="KIND" icon="tag" href="/sdk/constants/overview">
+    Game entity kind tags (`KIND_UNIT`, `KIND_CIVILIZATION`, …)
+  </Card>
+  <Card title="AGE" icon="clock" href="/sdk/constants/overview">
+    Age identifiers (`AGE_ANTIQUITY`, `AGE_EXPLORATION`, `AGE_MODERN`)
+  </Card>
+</CardGroup>
+
+## Reference table
+
+| Constant | Values | Use case |
+|---|---|---|
+| `UNIT` | `SCOUT`, `ARCHER`, `SETTLER`, `ARMY_COMMANDER` | `unitReplace`, `visualRemap` |
+| `UNIT_CLASS` | `RECON`, `INFANTRY`, `RANGED`, `CAVALRY`, `MOUNTED`, `SIEGE`, `NAVAL`, … | `typeTags` on `UnitBuilder` |
+| `ABILITY` | 50+ ability identifiers | Unit ability modifiers |
+| `EFFECT` | 500+ effect identifiers | `ModifierBuilder.modifier.effect` |
+| `COLLECTION` | `OWNER`, `ALL_CITIES`, `ALL_UNITS`, … | `ModifierBuilder.modifier.collection` |
+| `REQUIREMENT` | `CITY_HAS_UNIQUE_QUARTER`, `PLAYER_LEADER_TYPE_MATCHES`, … | Modifier requirements |
+| `REQUIREMENT_SET` | `TEST_ALL`, `TEST_LEAST_ONE` | Requirement set types |
+| `KIND` | `UNIT`, `CIVILIZATION`, `TRAIT`, `CONSTRUCTIBLE`, `TRADITION`, … | `TypeNode.kind` |
+| `AGE` | `ANTIQUITY`, `EXPLORATION`, `MODERN` | `ProgressionTreeBuilder`, `LeaderUnlockBuilder` |
+| `TERRAIN` | `GRASS`, `PLAINS`, `DESERT`, `TUNDRA`, … | `constructibleValidTerrains` |
+| `BIOME` | All biome types | `constructibleValidBiomes`, start biases |
+| `FEATURE` | `FOREST`, `MARSH`, `OASIS`, … | `constructibleValidFeatures` |
+| `FEATURE_CLASS` | Feature class groups | Start bias feature classes |
+| `RESOURCE` | All resource types | Start biases, yield changes |
+| `RESOURCE_CLASS` | Resource class groups | Modifier conditions |
+| `DISTRICT` | `URBAN`, `CITY_CENTER`, `RURAL`, … | `constructibleValidDistricts` |
+| `YIELD` | `GOLD`, `FOOD`, `PRODUCTION`, `SCIENCE`, `CULTURE`, `HAPPINESS` | Yield changes, maintenance |
+| `TRAIT` | `ANTIQUITY_CIV`, `ATTRIBUTE_MILITARISTIC`, … | `civilizationTraits` |
+| `TAG_TRAIT` | `CULTURAL`, `ECONOMIC`, `MILITARISTIC`, … | `civilizationTags` |
+| `CIVILIZATION_DOMAIN` | Helper object with `.from(ageType)` method | Internal use by builders |
+| `ACTION_GROUP` | Pre-built `ActionGroupNode` instances | `XmlFile.actionGroups` |
+| `ACTION_GROUP_ACTION` | `UPDATE_DATABASE`, `UPDATE_TEXT`, `UPDATE_ICONS`, … | `XmlFile.actionGroupActions` |
+| `ACTION_GROUP_BUNDLE` | `AGE_ANTIQUITY`, `AGE_EXPLORATION`, `AGE_MODERN` | Builder `actionGroupBundle` |
+| `ADVISORY` | Advisory class types | `progressionTreeAdvisories` |
+| `BUILDING_CULTURES` | Building visual culture identifiers | `CivilizationBuilder.visArtCivilizationBuildingCultures` |
+| `UNIT_CULTURE` | Unit visual culture identifiers | `CivilizationBuilder.visArtCivilizationUnitCulture` |
+| `CONSTRUCTIBLE_TYPE_TAG` | `AGELESS`, `FOOD`, `PRODUCTION`, … | `ConstructibleBuilder.typeTags` |
+| `CONSTRUCTIBLE_CLASS` | Constructible class identifiers | Constructible classification |
+| `DOMAIN` | `LAND`, `SEA`, `AIR` | `UnitNode.domain` |
+| `FORMATION_CLASS` | `LAND_COMBAT`, `NAVAL`, … | `UnitNode.formationClass` |
+| `CORE_CLASS` | `MILITARY`, `CIVILIAN`, … | `UnitNode.coreClass` |
+| `UNIT_MOVEMENT_CLASS` | `FOOT`, `WHEELED`, `MOUNTED`, … | `UnitNode.unitMovementClass` |
+| `PLUNDER` | Plunder yield types | `constructiblePlunders` |
+| `FERTILITY` | Fertility types | Internal |
+| `ICON` | Icon path prefixes | Icon paths |
+| `LANGUAGE` | Supported locale codes | Localization `language` field |
+| `SYSTEM` | Internal system constants | Internal |
+| `COLLECTION` | Modifier collection scopes | `ModifierBuilder.modifier.collection` |

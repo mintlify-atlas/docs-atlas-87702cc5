@@ -1,0 +1,224 @@
+---
+title: "Unique Quarters"
+description: "Create civilization-specific quarters by combining buildings with UniqueQuarterBuilder."
+---
+
+Unique Quarters are special districts formed by combining two buildings. They provide powerful bonuses and can define a civilization's identity.
+
+## How unique quarters work
+
+A unique quarter requires:
+1. Two component buildings (each provides individual bonuses)
+2. A quarter definition combining those buildings
+3. Modifiers that activate when the quarter is complete
+
+## Complete example
+
+Here's a full unique quarter — the Dragon Mountain complex for Dacia:
+
+```typescript
+import {
+  ACTION_GROUP_BUNDLE,
+  CONSTRUCTIBLE_TYPE_TAG,
+  ConstructibleBuilder,
+  DISTRICT,
+  Mod,
+  ModifierBuilder,
+  UniqueQuarterBuilder,
+  COLLECTION,
+  EFFECT,
+  REQUIREMENT,
+  YIELD
+} from "civ7-modding-tools";
+
+const mod = new Mod({ id: "my-quarter-mod", version: "1.0" });
+
+// Step 1: Create the first building
+const warriorHall = new ConstructibleBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  constructible: { constructibleType: "BUILDING_WARRIOR_HALL" },
+  building: {},
+  typeTags: [CONSTRUCTIBLE_TYPE_TAG.AGELESS, CONSTRUCTIBLE_TYPE_TAG.UNIQUE, CONSTRUCTIBLE_TYPE_TAG.MILITARY],
+  constructibleValidDistricts: [DISTRICT.URBAN, DISTRICT.CITY_CENTER],
+  constructibleYieldChanges: [{ yieldType: YIELD.PRODUCTION, yieldChange: 2 }],
+  localizations: [{ name: "Warrior Hall", description: "Training hall.", tooltip: "+2 Production." }]
+});
+
+// Step 2: Create the second building
+const wolfShrine = new ConstructibleBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  constructible: { constructibleType: "BUILDING_WOLF_SHRINE" },
+  building: {},
+  typeTags: [CONSTRUCTIBLE_TYPE_TAG.AGELESS, CONSTRUCTIBLE_TYPE_TAG.UNIQUE, CONSTRUCTIBLE_TYPE_TAG.CULTURE],
+  constructibleValidDistricts: [DISTRICT.URBAN, DISTRICT.CITY_CENTER],
+  constructibleYieldChanges: [{ yieldType: YIELD.CULTURE, yieldChange: 2 }],
+  localizations: [{ name: "Wolf Shrine", description: "Sacred shrine.", tooltip: "+2 Culture." }]
+});
+
+// Step 3: Create the unique quarter
+const dragonMountain = new UniqueQuarterBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  uniqueQuarter: {
+    uniqueQuarterType: "QUARTER_DRAGON_MOUNTAIN",
+    buildingType1: warriorHall.constructible.constructibleType,
+    buildingType2: wolfShrine.constructible.constructibleType,
+  },
+  localizations: [{
+    name: "Dragon Mountain",
+    description: "Sacred military complex of the Dacians."
+  }]
+});
+
+// Step 4: Create the quarter's bonus modifier
+const quarterBonus = new ModifierBuilder({
+  modifier: {
+    collection: COLLECTION.ALL_CITIES,
+    effect: EFFECT.CITY_ADJUST_YIELD,
+    permanent: true,
+    requirements: [{
+      type: REQUIREMENT.CITY_HAS_UNIQUE_QUARTER,
+      arguments: [{ name: "UniqueQuarterType", value: "QUARTER_DRAGON_MOUNTAIN" }]
+    }],
+    arguments: [
+      { name: "YieldType", value: YIELD.PRODUCTION },
+      { name: "Amount", value: 2 },
+      { name: "Tooltip", value: "LOC_QUARTER_DRAGON_MOUNTAIN_NAME" }
+    ]
+  }
+});
+
+// Step 5: Bind the modifier to the quarter
+dragonMountain.bind([quarterBonus]);
+
+// Step 6: Add everything
+mod.add([warriorHall, wolfShrine, dragonMountain]).build("./dist");
+```
+
+## Integrating with a civilization
+
+To make the quarter civilization-specific, bind it through the civilization:
+
+```typescript
+const dacia = new CivilizationBuilder({ /* ... */ });
+
+// Civilization-specific bonus
+const civBonus = new ModifierBuilder({
+  modifier: {
+    collection: COLLECTION.PLAYER_CITIES,
+    effect: EFFECT.CITY_ADJUST_YIELD,
+    permanent: true,
+    requirements: [
+      {
+        type: REQUIREMENT.CITY_HAS_UNIQUE_QUARTER,
+        arguments: [{ name: "UniqueQuarterType", value: dragonMountain.uniqueQuarter.uniqueQuarterType }]
+      },
+      {
+        type: REQUIREMENT.PLAYER_IS_CIVILIZATION_TYPE,
+        arguments: [{ name: "CivilizationType", value: dacia.civilization.civilizationType }]
+      }
+    ],
+    arguments: [
+      { name: "YieldType", value: YIELD.GOLD },
+      { name: "Amount", value: 5 }
+    ]
+  },
+  localizations: [{ description: "+5 Gold from Dragon Mountain (Dacia only)." }]
+});
+
+dragonMountain.bind([civBonus]);
+dacia.bind([warriorHall, wolfShrine, dragonMountain]);
+
+mod.add([dacia, warriorHall, wolfShrine, dragonMountain]).build("./dist");
+```
+
+## Conditional bonuses
+
+### Terrain-based bonus
+
+```typescript
+const hillsBonus = new ModifierBuilder({
+  modifier: {
+    collection: COLLECTION.PLAYER_CITIES,
+    effect: EFFECT.CITY_ADJUST_YIELD,
+    permanent: true,
+    requirements: [
+      {
+        type: REQUIREMENT.CITY_HAS_UNIQUE_QUARTER,
+        arguments: [{ name: "UniqueQuarterType", value: "QUARTER_MOUNTAIN_COMPLEX" }]
+      },
+      {
+        type: REQUIREMENT.PLOT_IS_TERRAIN_TYPE,
+        arguments: [{ name: "TerrainType", value: "TERRAIN_HILLS" }]
+      }
+    ],
+    arguments: [
+      { name: "YieldType", value: YIELD.PRODUCTION },
+      { name: "Amount", value: 3 }
+    ]
+  },
+  localizations: [{ description: "+3 Production when built on Hills." }]
+});
+```
+
+### Wartime bonus
+
+```typescript
+const warBonus = new ModifierBuilder({
+  modifier: {
+    collection: COLLECTION.PLAYER_CITIES,
+    effect: EFFECT.CITY_ADJUST_YIELD,
+    permanent: true,
+    requirements: [
+      {
+        type: REQUIREMENT.CITY_HAS_UNIQUE_QUARTER,
+        arguments: [{ name: "UniqueQuarterType", value: "QUARTER_WAR_COMPLEX" }]
+      },
+      { type: REQUIREMENT.PLAYER_IS_AT_WAR }
+    ],
+    arguments: [
+      { name: "YieldType", value: YIELD.PRODUCTION },
+      { name: "Amount", value: 5 }
+    ]
+  },
+  localizations: [{ description: "+5 Production during wartime." }]
+});
+```
+
+## Age-specific quarters
+
+```typescript
+// Antiquity Age quarter
+const ancientQuarter = new UniqueQuarterBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  uniqueQuarter: {
+    uniqueQuarterType: "QUARTER_ANCIENT_COMPLEX",
+    buildingType1: "BUILDING_ANCIENT_TEMPLE",
+    buildingType2: "BUILDING_ANCIENT_MARKET",
+  },
+  localizations: [{ name: "Ancient Complex", description: "Ancient sacred complex." }]
+});
+
+// Exploration Age quarter
+const explorationQuarter = new UniqueQuarterBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_EXPLORATION,
+  uniqueQuarter: {
+    uniqueQuarterType: "QUARTER_EXPLORATION_COMPLEX",
+    buildingType1: "BUILDING_EXPLORATION_TEMPLE",
+    buildingType2: "BUILDING_EXPLORATION_MARKET",
+  },
+  localizations: [{ name: "Trade Complex", description: "Exploration-era trade hub." }]
+});
+```
+
+## Best practices
+
+1. **Balance** — the combined bonus shouldn't be overwhelmingly strong; balance against the investment required
+2. **Thematic fit** — both buildings and the quarter should feel cohesive
+3. **Clear purpose** — give the quarter a distinct gameplay role (military, economic, cultural)
+4. **Descriptive localization** — players should understand what the quarter does from its description alone
+
+## Related guides
+
+- [Creating Buildings](/guides/typescript/creating-buildings)
+- [Creating Civilizations](/guides/typescript/creating-civilizations)
+- [Modifiers & Effects](/guides/typescript/modifiers-and-effects)

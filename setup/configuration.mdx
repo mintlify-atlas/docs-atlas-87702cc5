@@ -1,0 +1,150 @@
+---
+title: "Configuration"
+description: "Understand civ.config.jsonc — the file that tells the CLI where to find your Civ7 installation and where to write its outputs."
+---
+
+The `civ.config.jsonc` file at the repository root controls how the `civ7` CLI finds game resources and where it writes generated files. It uses JSONC (JSON with comments) and is validated against a JSON schema.
+
+## File structure
+
+Here is the full default configuration:
+
+```jsonc civ.config.jsonc
+{
+    "$schema": "./packages/config/schema/civ.config.schema.json",
+    "inputs": {
+        // "installDir": "~/Library/Application Support/Steam/steamapps/common/Sid Meier's Civilization VII/CivilizationVII.app/Contents/Resources"
+    },
+    "outputs": {
+        "baseDir": ".civ7/outputs",
+        "zip": {
+            "dir": "archives",
+            "name": "civ7-official-resources.zip"
+        },
+        "unzip": {
+            "dir": "resources"
+        },
+        "graph": {
+            "dir": "graph"
+        }
+    },
+    "profiles": {
+        "default": {
+            "description": "Core gameplay data, excluding large assets. Used by the official docs site.",
+            "zip": {
+                "exclude": [
+                    "*/Platforms/*", "*/movies/*", "*/data/icons/*", "*/fonts/*",
+                    "*/Assets/Benchmark/*", "*/Assets/Legal/*", "Assets.car",
+                    "AppIcon.icns", "default.metallib", "ShaderAutoGen_*",
+                    "*.mp4", "*.webm", "*.mov", "*.ogg", "*.mp3", "*.wav",
+                    "*.dds", "*.png", "*.ttf", "*.otf", "*.js.map"
+                ]
+            }
+        },
+        "full": {
+            "description": "A complete set of game resources, including all assets.",
+            "zip": {
+                "exclude": []
+            }
+        },
+        "assets": {
+            "description": "Only media assets like icons, fonts, and movies.",
+            "zip": {
+                "include": [
+                    "Assets/*", "movies/*", "data/icons/*", "fonts/*",
+                    "Assets.car", "AppIcon.icns", "default.metallib", "ShaderAutoGen_*"
+                ]
+            }
+        }
+    }
+}
+```
+
+## Sections
+
+### `inputs`
+
+Defines where the CLI looks for source files.
+
+| Field        | Type   | Description                                                                                  |
+| ------------ | ------ | -------------------------------------------------------------------------------------------- |
+| `installDir` | string | Absolute path to your Civilization VII installation's resources directory. Supports `~` for home directory. |
+
+The `installDir` field is commented out in the default config. You must set it before running `bun run refresh:data`.
+
+**Common paths by platform:**
+
+<CodeGroup>
+
+```text macOS (Steam)
+~/Library/Application Support/Steam/steamapps/common/Sid Meier's Civilization VII/CivilizationVII.app/Contents/Resources
+```
+
+```text Windows (Steam)
+C:\Program Files (x86)\Steam\steamapps\common\Sid Meier's Civilization VII
+```
+
+```text Windows (Epic)
+C:\Program Files\Epic Games\SidMeiersCivilizationVII
+```
+
+</CodeGroup>
+
+### `outputs`
+
+Controls where the CLI writes generated files. All paths are relative to the repository root unless absolute.
+
+| Field            | Default                               | Description                                              |
+| ---------------- | ------------------------------------- | -------------------------------------------------------- |
+| `baseDir`        | `.civ7/outputs`                       | Root directory for all CLI output. Keeps generated files out of your working tree. |
+| `zip.dir`        | `archives`                            | Subdirectory inside `baseDir` where zip archives are written. |
+| `zip.name`       | `civ7-official-resources.zip`         | Filename for the generated archive.                      |
+| `unzip.dir`      | `resources`                           | Subdirectory inside `baseDir` where extracted files land. |
+| `graph.dir`      | `graph`                               | Subdirectory inside `baseDir` for graph crawl outputs.   |
+
+With the defaults, running `bun run refresh:data` produces:
+
+```
+.civ7/outputs/
+├── archives/
+│   └── civ7-official-resources.zip
+└── resources/
+    └── ... (extracted game XML)
+```
+
+### `profiles`
+
+Profiles are named sets of zip settings. You pass a profile name to CLI commands like `civ7 data zip <profile>`. Three profiles are defined by default:
+
+| Profile   | Description                                                                    |
+| --------- | ------------------------------------------------------------------------------ |
+| `default` | Core gameplay data only — excludes media assets, shaders, fonts, and binaries. Used by the docs site. |
+| `full`    | Everything — no exclusions. Produces a large archive with all game files.      |
+| `assets`  | Media assets only — icons, fonts, movies, and compiled asset bundles.          |
+
+Each profile can define `zip.include` (glob patterns to include) or `zip.exclude` (glob patterns to exclude) arrays. When both are absent, all files are included.
+
+## Overriding defaults
+
+You can pass a `--config` flag to any CLI command to use a different config file:
+
+```bash
+civ7 data zip default --config ./custom.config.jsonc
+```
+
+You can also add your own profiles to the `profiles` object in `civ.config.jsonc`. Profile names can be any string — reference them by name in CLI commands.
+
+```jsonc
+"profiles": {
+    "xml-only": {
+        "description": "Only XML data files, no assets or binaries.",
+        "zip": {
+            "include": ["**/*.xml"]
+        }
+    }
+}
+```
+
+<Tip>
+  Some CLI commands also accept `--root` and `--dest` flags to bypass config entirely when you need a one-off override.
+</Tip>

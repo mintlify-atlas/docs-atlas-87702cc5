@@ -1,0 +1,176 @@
+---
+title: "Modifier System"
+description: "How modifiers work — owners, subjects, ModifierTypes, arguments, requirements, and GameEffects XML."
+---
+
+<Note>
+  This guide assumes familiarity with [Database Modding](/guides/official/database-modding). Read that first.
+</Note>
+
+The Modifier System drives most game effects in Civilization VII — civ abilities, civic unlocks, unit abilities, wonder bonuses, and more. If you've modded Civ VI, you'll find the system essentially unchanged; there are new modifiers and requirements, but the structure is the same.
+
+## What is a modifier?
+
+Modifiers let designers and modders dynamically alter the game through database entries. Each modifier has:
+
+- An **Owner** — the entity the modifier is attached to (player, city, unit, or the game itself)
+- A **Subject** — the entity the modifier acts on
+- A **ModifierId** — a unique identifier in the database
+- A **ModifierType** — determines what the modifier does
+
+<Note>
+  Not everything requires a modifier. Adjacency bonuses, warehouse bonuses, and simple building yields have dedicated tables (`Constructible_Adjacencies`, `Constructible_WarehouseYields`, `Constructible_YieldChanges`). If you're unsure, find a similar piece of game content in the files and use it as a reference.
+</Note>
+
+## EntityModifier tables
+
+The Owner of a modifier is determined by which table the modifier is assigned to. These are called **EntityModifier Tables** — examples include `TraitModifiers`, `TraditionModifiers`, and `UnitAbilityModifiers`.
+
+```sql
+INSERT INTO TraditionModifiers (TraditionType, ModifierId)
+VALUES
+  ('TRAIT_LEADER_ASHOKA_ALT_ABILITY', 'ASHOKA_ALT_MOD_HAPPINESS_PRODUCTION'),
+  ('TRAIT_LEADER_ASHOKA_ALT_ABILITY', 'ASHOKA_ALT_MOD_CAPTURED_SETTLEMENT_PRODUCTION');
+```
+
+A modifier in `TraitModifiers` enters play when a player with that trait is in-game. That player becomes the Owner.
+
+## ModifierType
+
+The Subject and the effect are determined by the `ModifierType`, which combines an `EffectType` (what it does) and a `CollectionType` (who it affects).
+
+The example below creates a `ModifierType` that adjusts city yields for all cities belonging to a specific player:
+
+```sql
+INSERT INTO Types
+        (Type,                              Kind)
+VALUES  ('FXS_IRRIGATION_DITCHES_MOD_TYPE', 'KIND_MODIFIER');
+
+INSERT INTO DynamicModifiers (ModifierType, CollectionType, EffectType)
+VALUES  (
+  'FXS_IRRIGATION_DITCHES_MOD_TYPE',
+  'COLLECTION_PLAYER_CITIES',
+  'EFFECT_CITY_ADJUST_YIELD'
+);
+```
+
+Now create a modifier using that type and assign it to a tradition:
+
+```sql
+INSERT INTO Modifiers (ModifierId, ModifierType)
+VALUES ('FXS_IRRIGATION_DITCHES_MODIFIER', 'FXS_IRRIGATION_DITCHES_MOD_TYPE');
+
+INSERT INTO TraditionModifiers (TraditionType, ModifierId)
+VALUES ('TRADITION_FXS_IRRIGATION_DITCHES', 'FXS_IRRIGATION_DITCHES_MODIFIER');
+```
+
+## ModifierArguments
+
+The `ModifierArguments` table controls the specifics of an effect. For the irrigation ditches modifier above, specify +5 Food:
+
+```sql
+INSERT INTO ModifierArguments (ModifierId, Name, Value)
+VALUES
+  ('FXS_IRRIGATION_DITCHES_MODIFIER', 'YieldType', 'YIELD_FOOD'),
+  ('FXS_IRRIGATION_DITCHES_MODIFIER', 'Amount', 5);
+```
+
+Valid `Name` values depend on the `EffectType`. To find what names are available, look for other modifiers with the same `EffectType` in the game files or in `gameplay-copy.sqlite` in the `Debug` folder.
+
+## RequirementSets
+
+What if you only want the +5 Food to apply to cities that have a Granary? That's where `RequirementSets` come in.
+
+A `RequirementSet` is a collection of `Requirements` that must be met before a modifier activates. A modifier can have:
+
+- `OwnerRequirementSetID` — checks whether the Owner meets conditions before the modifier activates at all
+- `SubjectRequirementSetID` — checks each Subject individually; only Subjects that pass get the modifier applied
+
+```sql
+INSERT INTO RequirementSets (RequirementSetId, RequirementSetType)
+VALUES ('FXS_IRRIGATION_DITCHES_REQUIREMENTS', 'REQUIREMENTSET_TEST_ALL');
+
+INSERT INTO Modifiers (ModifierId, ModifierType, SubjectRequirementSetID)
+VALUES (
+  'FXS_IRRIGATION_DITCHES_MODIFIER',
+  'FXS_IRRIGATION_DITCHES_MOD_TYPE',
+  'FXS_IRRIGATION_DITCHES_REQUIREMENTS'
+);
+```
+
+<AccordionGroup>
+  <Accordion title="REQUIREMENTSET_TEST_ALL vs TEST_ANY">
+    - `REQUIREMENTSET_TEST_ALL` — **all** requirements in the set must be met
+    - `REQUIREMENTSET_TEST_ANY` — the modifier activates if **any** requirement is met
+  </Accordion>
+</AccordionGroup>
+
+## Requirements
+
+Create a requirement and assign it to your set:
+
+```sql
+INSERT INTO Requirements (RequirementId, RequirementType)
+VALUES ('REQUIRES_FXS_IRRIGATION_DITCHES_HAS_GRANARY', 'REQUIREMENT_CITY_HAS_BUILDING');
+
+INSERT INTO RequirementSetRequirements (RequirementSetId, RequirementId)
+VALUES ('FXS_IRRIGATION_DITCHES_REQUIREMENTS', 'REQUIRES_FXS_IRRIGATION_DITCHES_HAS_GRANARY');
+
+INSERT INTO RequirementArguments (RequirementId, Name, Value)
+VALUES ('FXS_IRRIGATION_DITCHES_MODIFIER', 'BuildingType', 'BUILDING_GRANARY');
+```
+
+The `RequirementType` determines what the requirement checks. Unlike `ModifierType`, you reuse existing `RequirementType` values — you don't create custom ones. Browse game files or `gameplay-copy.sqlite` to find available types.
+
+## Recap
+
+<AccordionGroup>
+  <Accordion title="Full modifier system summary">
+    1. Modifiers handle most game effects.
+    2. Each modifier has an **Owner** (which EntityModifier table it's in) and a **Subject** (what it affects).
+    3. The `ModifierType` combines `EffectType` + `CollectionType`.
+    4. `ModifierArguments` set the specifics of the effect.
+    5. `RequirementSets` gate when a modifier activates — per Owner or per Subject.
+    6. `RequirementSets` contain one or more `Requirements`, each with a `RequirementType` and optional `RequirementArguments`.
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+  Modifiers interact oddly with saved games. Changes to modifier definitions do **not** retroactively update saves. Always start a new game to test modifier changes.
+</Warning>
+
+---
+
+## GameEffects XML
+
+Managing all these tables can get verbose. Civilization VII provides a shorthand: the `<GameEffects>` XML format.
+
+Instead of inserting into `DynamicModifiers`, `Modifiers`, `ModifierArguments`, and `RequirementSets` separately, you can declare everything in a single XML file:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<GameEffects xmlns="GameEffects">
+  <Modifier
+    id="MOD_PERIPLUS_RESOURCE_CAP"
+    collection="COLLECTION_PLAYER_CITIES"
+    effect="EFFECT_CITY_ADJUST_RESOURCE_CAP">
+    <SubjectRequirements type="REQUIREMENTSET_TEST_ANY">
+      <Requirement type="REQUIREMENT_PLOT_ADJACENT_TO_COAST"/>
+      <Requirement type="REQUIREMENT_PLOT_ADJACENT_TO_RIVER">
+        <Argument name="Navigable">true</Argument>
+      </Requirement>
+    </SubjectRequirements>
+    <Argument name="Amount">1</Argument>
+    <String context="Description">LOC_MOD_PERIPLUS_RESOURCE_CAP_DESCRIPTION</String>
+  </Modifier>
+</GameEffects>
+```
+
+Use this file with an `UpdateDatabase` action on the `game` scope.
+
+<Note>
+  Two important constraints:
+
+  1. A `<GameEffects>` file **cannot** also contain regular database changes (like adding buildings or leaders). You'll need separate files for those, though both can be in the same `ActionGroup`.
+  2. EntityModifier table entries (like `TraditionModifiers`, `ConstructibleModifiers`) cannot appear in a `<GameEffects>` file. They belong in a standard `<Database>` file.
+</Note>

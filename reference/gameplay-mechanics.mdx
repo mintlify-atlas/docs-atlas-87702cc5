@@ -1,0 +1,392 @@
+---
+title: 'Gameplay mechanics'
+description: 'Reference for Civilization VII game mechanics relevant to modding: the Age system, modifier framework, yield types, action groups, and more.'
+keywords: ['gameplay', 'mechanics', 'modding', 'modifiers', 'yields', 'ages', 'action groups', 'requirements']
+---
+
+This page is a modder-focused reference for Civilization VII's core gameplay systems. It covers the mechanics you interact with most when creating traits, abilities, units, and buildings.
+
+## Age system
+
+Civilization VII divides gameplay into three Ages. Each Age is implemented as a separate module with its own civilizations, units, buildings, and tech/civic trees.
+
+| Constant | Value | Historical period |
+|---|---|---|
+| `AGE_ANTIQUITY` | Antiquity Age | 3000 BCE – 500 CE |
+| `AGE_EXPLORATION` | Exploration Age | 500 CE – 1700 CE |
+| `AGE_MODERN` | Modern Age | 1700 CE – Present |
+
+In the SDK, these are available as:
+
+```typescript
+import { AGE } from '@civ7/sdk';
+
+AGE.ANTIQUITY   // 'AGE_ANTIQUITY'
+AGE.EXPLORATION // 'AGE_EXPLORATION'
+AGE.MODERN      // 'AGE_MODERN'
+```
+
+### What changes at Age transitions
+
+At the end of each Age, the player chooses a new civilization. The following elements carry over:
+
+- **Leaders** remain the same across all three Ages
+- **Wonders** and **Unique Quarters** marked as Ageless persist on the map
+- **Commander units** retain experience and promotions
+- **Traditions** unlocked from civic trees remain slottable
+- **Legacy Bonuses** from completed Legacy Paths carry into the next Age
+
+## Action groups
+
+Action groups control *when* your mod's data is loaded by the game. Choosing the wrong action group causes data to load at the wrong time — often silently failing.
+
+| Action group | Scope | Loaded when |
+|---|---|---|
+| `SHELL` | `shell` | Always — for frontend/lobby data |
+| `GAME` | `game` | Always during gameplay |
+| `AGE_ANTIQUITY_CURRENT` | `game` | Only during the Antiquity Age |
+| `AGE_ANTIQUITY_EXIST` | `game` | During Antiquity, Exploration, and Modern |
+| `AGE_EXPLORATION_CURRENT` | `game` | Only during the Exploration Age |
+| `AGE_EXPLORATION_EXIST` | `game` | During Exploration and Modern |
+| `AGE_MODERN_CURRENT` | `game` | Only during the Modern Age |
+| `AGE_MODERN_EXIST` | `game` | Only during the Modern Age |
+
+In the SDK:
+
+```typescript
+import { ACTION_GROUP } from '@civ7/sdk';
+
+// Use for civilization data that spans all ages
+ACTION_GROUP.GAME
+
+// Use for Antiquity-only content
+ACTION_GROUP.AGE_ANTIQUITY_CURRENT
+
+// Use for content that should persist once Antiquity has been played
+ACTION_GROUP.AGE_ANTIQUITY_EXIST
+```
+
+<Tip>
+  Use `AGE_ANTIQUITY_EXIST` (not `AGE_ANTIQUITY_CURRENT`) for things like legacy bonuses or traditions that should remain active after the Age ends.
+</Tip>
+
+## Modifier system
+
+The modifier system is how almost all gameplay effects are implemented in Civilization VII. A modifier connects a **collection** (what the effect applies to) with an **effect** (what it does) and an optional **requirement set** (when it applies).
+
+### Modifier structure
+
+A complete modifier definition involves these tables:
+
+```xml
+<!-- 1. The modifier itself -->
+<Modifiers>
+  <Row ModifierId="MODIFIER_CUSTOM_YIELD_BONUS"
+       ModifierType="MODIFIER_PLAYER_CITIES_ADJUST_YIELD_CHANGE"
+       SubjectRequirementSetId="REQSET_CITY_IS_CAPITAL"/>
+</Modifiers>
+
+<!-- 2. Arguments controlling the effect magnitude -->
+<ModifierArguments>
+  <Row ModifierId="MODIFIER_CUSTOM_YIELD_BONUS"
+       Name="YieldType" Value="YIELD_CULTURE"/>
+  <Row ModifierId="MODIFIER_CUSTOM_YIELD_BONUS"
+       Name="Amount" Value="3"/>
+</ModifierArguments>
+
+<!-- 3. Attach it to a trait -->
+<TraitModifiers>
+  <Row TraitType="TRAIT_CIVILIZATION_CUSTOM_ABILITY"
+       ModifierId="MODIFIER_CUSTOM_YIELD_BONUS"/>
+</TraitModifiers>
+```
+
+### Collections
+
+Collections define the set of game objects the effect applies to. Common collections:
+
+| Collection | Applies to |
+|---|---|
+| `COLLECTION_OWNER_PLAYER` | The owning player |
+| `COLLECTION_PLAYER_CITIES` | All cities owned by the player |
+| `COLLECTION_PLAYER_CAPITAL_CITY` | The player's capital |
+| `COLLECTION_ALL_CITIES` | Every city in the game |
+| `COLLECTION_PLAYER_UNITS` | All units owned by the player |
+| `COLLECTION_PLAYER_TRAINED_UNITS` | Units trained by the player |
+| `COLLECTION_CITY_DISTRICTS` | Districts within a city |
+| `COLLECTION_CITY_CONSTRUCTIBLES` | Constructibles within a city |
+
+In the SDK, import from the `COLLECTION` constant:
+
+```typescript
+import { COLLECTION } from '@civ7/sdk';
+
+COLLECTION.PLAYER_CITIES         // 'COLLECTION_PLAYER_CITIES'
+COLLECTION.PLAYER_CAPITAL_CITY   // 'COLLECTION_PLAYER_CAPITAL_CITY'
+```
+
+### Effects
+
+Effects are the actual gameplay change applied to the collection. There are hundreds of effects; here are the most commonly used for modding:
+
+<AccordionGroup>
+  <Accordion title="Yield effects">
+    | Effect | Description |
+    |---|---|
+    | `EFFECT_CITY_ADJUST_YIELD` | Add a flat yield amount to a city |
+    | `EFFECT_CITY_ADJUST_YIELD_PER_POPULATION` | Add yield scaled to city population |
+    | `EFFECT_CITY_ADJUST_YIELD_PER_DISTRICT` | Add yield per district in city |
+    | `EFFECT_PLAYER_ADJUST_YIELD` | Add a flat yield to the player empire-wide |
+    | `EFFECT_PLAYER_ADJUST_YIELD_PER_RESOURCE` | Add yield per resource owned |
+    | `EFFECT_CITY_ADJUST_CONSTRUCTIBLE_YIELD` | Add yield to a specific constructible |
+    | `EFFECT_ADJUST_DISTRICT_YIELD_CHANGE` | Add yield to a district type |
+    | `EFFECT_CITY_GRANT_YIELD` | Grant a one-time yield to a city |
+    | `EFFECT_PLAYER_GRANT_YIELD` | Grant a one-time yield to the player |
+  </Accordion>
+
+  <Accordion title="Unit effects">
+    | Effect | Description |
+    |---|---|
+    | `EFFECT_ADJUST_UNIT_BASE_COMBAT_STRENGTH` | Flat combat strength bonus |
+    | `EFFECT_ADJUST_UNIT_STRENGTH_MODIFIER` | Percent modifier to combat strength |
+    | `EFFECT_ADJUST_UNIT_MOVEMENT` | Add movement points |
+    | `EFFECT_ADJUST_UNIT_SIGHT` | Add sight range |
+    | `EFFECT_ADJUST_UNIT_POST_COMBAT_HEAL` | Heal after combat |
+    | `EFFECT_ADJUST_UNIT_FRIENDLY_TERRITORY_COMBAT` | Combat bonus in own territory |
+    | `EFFECT_UNIT_ADJUST_HEAL_PER_TURN` | Healing per turn |
+    | `EFFECT_ARMY_ADJUST_EXPERIENCE_RATE` | Bonus experience rate |
+    | `EFFECT_CITY_ADJUST_UNIT_PRODUCTION` | Reduce unit production cost |
+  </Accordion>
+
+  <Accordion title="City and constructible effects">
+    | Effect | Description |
+    |---|---|
+    | `EFFECT_CITY_ADJUST_GROWTH` | Modify city growth rate |
+    | `EFFECT_CITY_ADJUST_CONSTRUCTIBLE_PRODUCTION` | Speed up constructible production |
+    | `EFFECT_CITY_GRANT_FREE_BUILDING` | Grant a free building in a city |
+    | `EFFECT_CITY_ADJUST_WORKER_YIELD` | Modify worker tile yields |
+    | `EFFECT_CITY_ADJUST_HIT_POINTS` | Adjust city hit points |
+    | `EFFECT_CITY_ACTIVATE_CONSTRUCTIBLE_ADJACENCY` | Enable adjacency bonus for a constructible |
+    | `EFFECT_PLAYER_ADJUST_CONSTRUCTIBLE_YIELD` | Add yield to all of a constructible type |
+  </Accordion>
+
+  <Accordion title="Player-level effects">
+    | Effect | Description |
+    |---|---|
+    | `EFFECT_PLAYER_ADJUST_SETTLEMENT_CAP` | Increase settlement cap |
+    | `EFFECT_PLAYER_ADJUST_TRADE_CAPACITY` | Increase trade route capacity |
+    | `EFFECT_PLAYER_ADJUST_UNIT_MAINTENANCE_EFFICIENCY` | Reduce unit upkeep |
+    | `EFFECT_PLAYER_GRANT_UNIT_AT_PLOT` | Spawn a unit at a plot |
+    | `EFFECT_PLAYER_GRANT_TRADITION_SLOTS` | Grant extra tradition slots |
+    | `EFFECT_PLAYER_UNLOCK_TRADITION` | Unlock a specific tradition |
+  </Accordion>
+</AccordionGroup>
+
+### Requirements
+
+Requirements gate when an effect applies. They are grouped into **requirement sets** and referenced in modifiers via `SubjectRequirementSetId`.
+
+Common requirements for modding:
+
+| Requirement | Checks |
+|---|---|
+| `REQUIREMENT_PLOT_IS_HILLS` | Unit or building is on hills terrain |
+| `REQUIREMENT_PLOT_ADJACENT_TO_RIVER` | Plot is adjacent to a river |
+| `REQUIREMENT_CITY_IS_CAPITAL` | City is the player's capital |
+| `REQUIREMENT_PLAYER_CIVILIZATION_TYPE_MATCHES` | Player is a specific civilization |
+| `REQUIREMENT_PLAYER_LEADER_TYPE_MATCHES` | Player has a specific leader |
+| `REQUIREMENT_UNIT_CLASS_MATCHES` | Unit belongs to a specific class |
+| `REQUIREMENT_UNIT_IN_OWNER_TERRITORY` | Unit is in friendly territory |
+| `REQUIREMENT_OPPONENT_IS_STRONGER` | Defending against a stronger opponent |
+| `REQUIREMENT_GAME_AGE_TYPE_MATCH` | A specific Age is active |
+
+Example requirement set:
+
+```xml
+<RequirementSets>
+  <Row RequirementSetId="REQSET_UNIT_ON_HILLS"
+       RequirementSetType="REQUIREMENTSET_TEST_ALL"/>
+</RequirementSets>
+
+<RequirementSetRequirements>
+  <Row RequirementSetId="REQSET_UNIT_ON_HILLS"
+       RequirementId="REQ_PLOT_IS_HILLS"/>
+</RequirementSetRequirements>
+
+<Requirements>
+  <Row RequirementId="REQ_PLOT_IS_HILLS"
+       RequirementType="REQUIREMENT_PLOT_IS_HILLS"/>
+</Requirements>
+```
+
+## Yield types
+
+Civilization VII uses a fixed set of yield types. You cannot add new yield types via mods — design your content around the existing ones.
+
+| Constant | Value | Purpose |
+|---|---|---|
+| `YIELD_FOOD` | Food | Grows city population |
+| `YIELD_PRODUCTION` | Production | Builds units and constructibles |
+| `YIELD_GOLD` | Gold | Currency for purchases and maintenance |
+| `YIELD_SCIENCE` | Science | Unlocks technologies |
+| `YIELD_CULTURE` | Culture | Unlocks civics |
+| `YIELD_DIPLOMACY` | Influence | Diplomatic currency for city-state actions |
+| `YIELD_HAPPINESS` | Happiness | Population satisfaction; affects growth |
+
+<Note>
+  Faith and Tourism from earlier Civ games are **not** yield types in Civilization VII. If you want to simulate faith-like mechanics, use Culture or Influence.
+</Note>
+
+In the SDK:
+
+```typescript
+import { YIELD } from '@civ7/sdk';
+
+YIELD.CULTURE    // 'YIELD_CULTURE'
+YIELD.DIPLOMACY  // 'YIELD_DIPLOMACY' (Influence)
+YIELD.HAPPINESS  // 'YIELD_HAPPINESS'
+```
+
+## Civilization abilities and traits
+
+Civilization and leader abilities are implemented as **Traits** with attached **Modifiers**. Every civilization gets a unique `CivAbility` trait; every leader gets a `LeaderAbility` trait.
+
+```xml
+<!-- Trait definition -->
+<Traits>
+  <Row TraitType="TRAIT_CIVILIZATION_CUSTOM_ABILITY"
+       Name="LOC_TRAIT_CIVILIZATION_CUSTOM_ABILITY_NAME"
+       Description="LOC_TRAIT_CIVILIZATION_CUSTOM_ABILITY_DESCRIPTION"/>
+</Traits>
+
+<!-- Connect trait to civilization -->
+<CivilizationTraits>
+  <Row CivilizationType="CIVILIZATION_CUSTOM"
+       TraitType="TRAIT_CIVILIZATION_CUSTOM_ABILITY"/>
+</CivilizationTraits>
+
+<!-- Attach modifier to trait -->
+<TraitModifiers>
+  <Row TraitType="TRAIT_CIVILIZATION_CUSTOM_ABILITY"
+       ModifierId="MODIFIER_CUSTOM_BONUS"/>
+</TraitModifiers>
+```
+
+### Ability types
+
+| Ability type | How it works |
+|---|---|
+| **Passive/ongoing** | Modifier is always active (e.g. +3 Culture empire-wide) |
+| **Conditional** | Modifier fires only when `SubjectRequirementSetId` is met |
+| **Triggered** | Effect attached to an event (tech completed, city founded, kill) |
+| **Tradition** | Unlocked via the civic tree; remains slottable across Ages |
+
+## Unique units
+
+Unique units are tied to civilizations via `CivilizationUniqueUnits` and typically **replace** a base unit for that civilization.
+
+### Unit replacement
+
+```xml
+<Units>
+  <Row UnitType="UNIT_CUSTOM_WARRIOR"
+       ReplacesUnitType="UNIT_SWORDSMAN"
+       Combat="36"
+       BaseMoves="2"
+       Domain="DOMAIN_LAND"/>
+</Units>
+```
+
+### Unit domains and formation classes
+
+| Constant | Value | Usage |
+|---|---|---|
+| `DOMAIN_LAND` | Land | Standard ground units |
+| `DOMAIN_SEA` | Sea | Naval units |
+| `DOMAIN_AIR` | Air | Aircraft |
+| `FORMATION_CLASS_LAND_COMBAT` | Land combat | Infantry, cavalry, ranged |
+| `FORMATION_CLASS_RECON` | Recon | Scouts, explorers |
+| `FORMATION_CLASS_SUPPORT` | Support | Settlers, builders |
+
+## Unique infrastructure
+
+Buildings, improvements, and quarters are collectively called **constructibles**. Each has a `ConstructibleClass`:
+
+| Class | Usage |
+|---|---|
+| `CONSTRUCTIBLE_CLASS_BUILDING` | Standard building in a district |
+| `CONSTRUCTIBLE_CLASS_IMPROVEMENT` | Rural tile improvement |
+| `CONSTRUCTIBLE_CLASS_WONDER` | World wonder |
+
+### Unique Quarters
+
+A Unique Quarter forms when two civilization-specific buildings occupy the same district tile. Define it with `UniqueQuarters`:
+
+```xml
+<UniqueQuarters>
+  <Row UniqueQuarterType="UNIQUE_QUARTER_CUSTOM_FORUM"
+       Name="LOC_UNIQUE_QUARTER_CUSTOM_FORUM_NAME"
+       Building1="BUILDING_CUSTOM_TEMPLE"
+       Building2="BUILDING_CUSTOM_BASILICA"/>
+</UniqueQuarters>
+```
+
+### Adjacency bonuses
+
+Constructibles can provide yield bonuses based on adjacent tiles:
+
+```xml
+<Adjacency_YieldChanges>
+  <Row ID="ADJACENCY_CUSTOM_SHRINE_HILLS"
+       Description="LOC_ADJACENCY_CUSTOM_SHRINE_HILLS"
+       YieldType="YIELD_CULTURE"
+       YieldChange="1"
+       TilesRequired="1"
+       AdjacentTerrain="TERRAIN_HILL"/>
+</Adjacency_YieldChanges>
+
+<Constructible_Adjacencies>
+  <Row ConstructibleType="CONSTRUCTIBLE_CUSTOM_SHRINE"
+       ID="ADJACENCY_CUSTOM_SHRINE_HILLS"/>
+</Constructible_Adjacencies>
+```
+
+## Civics and Traditions
+
+Each civilization has a small unique civic mini-tree (2–4 civics) within the era's civic progression. Completing these civics unlocks **Traditions**.
+
+### How Traditions work
+
+- Traditions are policy-like bonuses defined as entries in the `Traditions` table
+- They are unlocked by completing a civilization's unique civic
+- Once unlocked, they remain available to slot across all subsequent Ages
+- They are not lost when the player transitions to a new civilization
+
+```xml
+<Traditions>
+  <Row TraditionType="TRADITION_CUSTOM_WOLF_WARRIORS"
+       Name="LOC_TRADITION_CUSTOM_WOLF_WARRIORS_NAME"
+       Description="LOC_TRADITION_CUSTOM_WOLF_WARRIORS_DESCRIPTION"/>
+</Traditions>
+
+<TraditionModifiers>
+  <Row TraditionType="TRADITION_CUSTOM_WOLF_WARRIORS"
+       ModifierId="MODIFIER_TRADITION_WOLF_WARRIOR_COMBAT"/>
+</TraditionModifiers>
+```
+
+## Independent Powers (city-states)
+
+City-states are called **Independent Powers** in Civilization VII. Interaction is driven by the **Influence** yield (`YIELD_DIPLOMACY`).
+
+| Action | Cost | Result |
+|---|---|---|
+| Befriend Independent | Influence | Begins suzerain countdown |
+| Become Suzerain | Highest invested Influence | Grants suzerain bonuses |
+| Levy Units | Influence | Borrow city-state units |
+| Incorporate City-State | Influence | Annex city-state as a Town |
+
+Mod a civilization to gain advantages with city-states by:
+- Adding a flat Influence bonus via a trait modifier
+- Reducing the cost of levy/incorporate actions with `EFFECT_PLAYER_ADJUST_LEVY_DISCOUNT_PERCENT`
+- Granting yields on becoming suzerain with `EFFECT_PLAYER_ADJUST_YIELD_FOR_BECOMING_SUZERAIN`

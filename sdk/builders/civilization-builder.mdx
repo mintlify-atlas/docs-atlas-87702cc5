@@ -1,0 +1,174 @@
+---
+title: "CivilizationBuilder"
+description: "Define a new civilization — traits, city names, start biases, visual art styles, and entity bindings."
+---
+
+`CivilizationBuilder` generates all XML for a custom civilization: the `Civilizations` row, traits, legacy path entries, city names, start biases, visual art culture settings, icon definitions, and localization.
+
+## Basic usage
+
+```typescript
+import {
+    Mod,
+    CivilizationBuilder,
+    ACTION_GROUP_BUNDLE,
+    TRAIT,
+    TAG_TRAIT,
+} from '@mateicanavra/civ7-sdk';
+
+const mod = new Mod({ id: 'mod-gondor', version: '1.0.0' });
+
+const civilization = new CivilizationBuilder({
+    actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+    civilization: {
+        civilizationType: 'CIVILIZATION_GONDOR',
+        domain: 'AntiquityAgeCivilizations',
+    },
+    civilizationTraits: [
+        TRAIT.ANTIQUITY_CIV,
+        TRAIT.ATTRIBUTE_EXPANSIONIST,
+    ],
+    civilizationTags: [TAG_TRAIT.CULTURAL, TAG_TRAIT.ECONOMIC],
+    localizations: [
+        {
+            name: 'Gondor',
+            fullName: 'The Kingdom of Gondor',
+            adjective: 'Gondorian',
+            description: 'A great realm of Men.',
+            cityNames: ['Minas Tirith', 'Osgiliath', 'Dol Amroth'],
+        },
+    ],
+});
+
+mod.add([civilization]).build('./dist');
+```
+
+## Constructor options
+
+<ParamField path="actionGroupBundle" type="ActionGroupBundle" required>
+  Determines when the civilization's files load. Typically `ACTION_GROUP_BUNDLE.AGE_ANTIQUITY`, `AGE_EXPLORATION`, or `AGE_MODERN`.
+</ParamField>
+
+<ParamField path="civilization" type="TPartialRequired<TCivilizationNode, 'civilizationType' | 'domain'>" required>
+  Core civilization data. Both `civilizationType` and `domain` are required.
+
+  | Field | Type | Description |
+  |---|---|---|
+  | `civilizationType` | `string` | Must start with `CIVILIZATION_`. Example: `'CIVILIZATION_GONDOR'` |
+  | `domain` | `string` | Age domain string, e.g. `'AntiquityAgeCivilizations'` |
+</ParamField>
+
+<ParamField path="trait" type="TPartialRequired<TTraitNode, 'traitType'>">
+  The primary trait node for this civilization. If omitted, auto-generated from `civilizationType` (e.g. `'TRAIT_GONDOR'`).
+</ParamField>
+
+<ParamField path="traitAbility" type="TPartialRequired<TraitNode, 'traitType'>">
+  The ability trait node. If omitted, auto-generated as `trait.traitType + '_ABILITY'`.
+</ParamField>
+
+<ParamField path="civilizationTraits" type="(TObjectValues<typeof TRAIT> | string)[]">
+  Additional trait types to assign to this civilization, such as age tags or attribute tags.
+
+  ```typescript
+  import { TRAIT } from '@mateicanavra/civ7-sdk';
+
+  civilizationTraits: [TRAIT.ANTIQUITY_CIV, TRAIT.ATTRIBUTE_MILITARISTIC]
+  ```
+</ParamField>
+
+<ParamField path="civilizationTags" type="TObjectValues<typeof TAG_TRAIT>[]">
+  Tags visible in the civilization selection screen. Use `TAG_TRAIT` constants.
+
+  ```typescript
+  import { TAG_TRAIT } from '@mateicanavra/civ7-sdk';
+
+  civilizationTags: [TAG_TRAIT.CULTURAL, TAG_TRAIT.ECONOMIC]
+  ```
+</ParamField>
+
+<ParamField path="civilizationLegacy" type="TPartialRequired<TLegacyCivilizationNode, 'age'>">
+  Legacy path configuration. Defaults to `{ age: AGE.ANTIQUITY }`.
+</ParamField>
+
+<ParamField path="civilizationItems" type="TPartialRequired<TCivilizationItemNode, 'type' | 'kind'>[]">
+  Additional items to show in the civilization selection panel (buildings, improvements, etc.).
+</ParamField>
+
+<ParamField path="startBiasBiomes" type="TPartialRequired<TStartBiasBiomeNode, 'biomeType'>[]">
+  Preferred biomes for start placement. Higher `score` increases the bias.
+</ParamField>
+
+<ParamField path="startBiasResources" type="TPartialRequired<TStartBiasResourceNode, 'resourceType'>[]">
+  Preferred resources near the starting location.
+</ParamField>
+
+<ParamField path="startBiasTerrains" type="TPartialRequired<TStartBiasTerrainNode, 'terrainType'>[]">
+  Preferred terrain types for start placement.
+</ParamField>
+
+<ParamField path="startBiasRiver" type="number | null">
+  Score bonus for starting near a river. `null` disables this bias.
+</ParamField>
+
+<ParamField path="startBiasFeatureClasses" type="TPartialRequired<TStartBiasFeatureClassNode, 'featureClassType'>[]">
+  Preferred feature classes near the start tile.
+</ParamField>
+
+<ParamField path="startBiasAdjacentToCoast" type="number | null">
+  Score bonus for starting adjacent to a coast. `null` disables this bias.
+</ParamField>
+
+<ParamField path="visArtCivilizationBuildingCultures" type="TObjectValues<typeof BUILDING_CULTURES>[]">
+  Visual art building culture styles assigned to this civilization.
+</ParamField>
+
+<ParamField path="visArtCivilizationUnitCulture" type="TObjectValues<typeof UNIT_CULTURE> | null">
+  Visual art unit culture style.
+</ParamField>
+
+<ParamField path="icon" type="TPartialRequired<TIconDefinitionNode, 'path'>">
+  Civilization icon definition. Defaults to `fs://game/civ_sym_han`.
+</ParamField>
+
+<ParamField path="localizations" type="Partial<TCivilizationLocalization>[]">
+  Display text for this civilization.
+
+  | Field | Type | Description |
+  |---|---|---|
+  | `name` | `string` | Short civilization name |
+  | `fullName` | `string` | Full civilization name |
+  | `adjective` | `string` | Adjective form, e.g. `'Gondorian'` |
+  | `description` | `string` | Civilization description |
+  | `cityNames` | `string[]` | Ordered list of city names |
+</ParamField>
+
+## Binding entities
+
+Use `civilization.bind(items)` to associate other builders with this civilization. Binding handles the `traitType` injection, `CivilizationItems` panel entries, and modifier wiring automatically.
+
+```typescript
+civilization.bind([
+    unit,             // UnitBuilder → sets unit.traitType, adds CivilizationItem
+    constructible,    // ConstructibleBuilder → sets traitType, adds item
+    uniqueQuarter,    // UniqueQuarterBuilder → sets traitType, adds item
+    modifier,         // ModifierBuilder → wires TraitModifier
+    progressionTree,  // ProgressionTreeBuilder → adds reveal modifier
+    unlockBuilder,    // CivilizationUnlockBuilder → adds CivilizationUnlock row
+    leaderUnlock,     // LeaderUnlockBuilder → adds LeaderUnlock + bias rows
+]);
+```
+
+<Note>
+Always call `bind()` **before** `mod.add()`. The bind step mutates the internal nodes of both the civilization and the bound builders.
+</Note>
+
+## Output files
+
+| File | Action group | Action |
+|---|---|---|
+| `current.xml` | `bundle.current` | `UpdateDatabase` |
+| `legacy.xml` | `bundle.always` | `UpdateDatabase` |
+| `shell.xml` | `bundle.shell` | `UpdateDatabase` |
+| `icons.xml` | `bundle.shell`, `bundle.always` | `UpdateIcons` |
+| `localization.xml` | `bundle.shell`, `bundle.always` | `UpdateText` |
+| `game-effects.xml` | `bundle.current` | `UpdateDatabase` |

@@ -1,0 +1,73 @@
+---
+title: 'data unzip'
+description: 'Extract a Civilization VII resource archive based on a named profile.'
+---
+
+`civ7 data unzip` extracts a zip archive of game resources to a local directory. The source archive path and extraction destination are resolved from the active profile in `civ.config.jsonc`, but can both be overridden with arguments.
+
+```bash
+civ7 data unzip [profile] [zipfile] [extractpath]
+```
+
+## Arguments
+
+<ParamField path="profile" type="string" default="default">
+  The profile to use from the config file. Controls where the CLI looks for the archive and where it extracts files.
+</ParamField>
+
+<ParamField path="zipfile" type="string">
+  Override the source path for the zip archive. When omitted, the path is resolved from `outputs.zip.dir` and `outputs.zip.name` in the config for the selected profile.
+</ParamField>
+
+<ParamField path="extractpath" type="string">
+  Override the output directory for extraction. When omitted, files are extracted to the directory defined by `outputs.unzip.dir` in the config.
+</ParamField>
+
+## Flags
+
+<ParamField query="--config" type="string">
+  Path to a `civ.config.jsonc` file.
+</ParamField>
+
+## Output summary
+
+After extraction, the CLI prints a summary table:
+
+```
++--------------------------------------------------------+
+| Unzip Operation Summary for Profile: 'default'         |
++-----------------------------+--------------------------+
+| Archive Size                | 456.78 MB                |
+| Uncompressed Size           | 1.23 GB                  |
++-----------------------------+--------------------------+
+```
+
+## Examples
+
+Extract using the `default` profile (paths resolved from config):
+
+```bash
+civ7 data unzip
+```
+
+Extract the `full` profile archive:
+
+```bash
+civ7 data unzip full
+```
+
+Extract with a custom config file:
+
+```bash
+civ7 data unzip --config ./my-config.jsonc default
+```
+
+Override both the archive path and the extraction directory:
+
+```bash
+civ7 data unzip default ./my-custom-archive.zip ./my-custom-output-dir
+```
+
+<Note>
+  After extraction, the `outputs.unzip.dir` path is used as the XML root directory by `data crawl`, `data explore`, and `data slice`. Ensure the config points to the correct directory before running those commands.
+</Note>

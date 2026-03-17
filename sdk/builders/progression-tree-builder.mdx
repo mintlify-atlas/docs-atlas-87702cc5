@@ -1,0 +1,176 @@
+---
+title: "ProgressionTreeBuilder"
+description: "Build custom civic or tech trees with nodes, prerequisites, modifiers, and tradition unlocks."
+---
+
+`ProgressionTreeBuilder` creates a custom progression tree (civic or tech tree). Pair it with one or more `ProgressionTreeNodeBuilder` instances to define the individual nodes and their unlock targets.
+
+## Basic usage
+
+```typescript
+import {
+    Mod,
+    CivilizationBuilder,
+    ProgressionTreeBuilder,
+    ProgressionTreeNodeBuilder,
+    ModifierBuilder,
+    TraditionBuilder,
+    ACTION_GROUP_BUNDLE,
+    AGE,
+    ADVISORY,
+    COLLECTION,
+    EFFECT,
+    TRAIT,
+    TAG_TRAIT,
+} from '@mateicanavra/civ7-sdk';
+
+const mod = new Mod({ id: 'mod-gondor', version: '1.0.0' });
+
+// 1. Create the tree nodes
+const node1 = new ProgressionTreeNodeBuilder({
+    progressionTreeNode: { progressionTreeNodeType: 'NODE_CIVICS_GONDOR_1' },
+    progressionTreeAdvisories: [ADVISORY.CLASS_FOOD],
+    localizations: [{ name: 'Stone Walls' }],
+}).bind([
+    new ModifierBuilder({
+        modifier: {
+            collection: COLLECTION.OWNER,
+            effect: EFFECT.PLAYER_ADJUST_CONSTRUCTIBLE_YIELD,
+            arguments: [
+                { name: 'Tag', value: 'FOOD' },
+                { name: 'YieldType', value: 'YIELD_FOOD' },
+                { name: 'Amount', value: 5 },
+            ],
+        },
+        localizations: [{ description: '+5 Food from all constructibles' }],
+    }),
+]);
+
+const node2 = new ProgressionTreeNodeBuilder({
+    progressionTreeNode: { progressionTreeNodeType: 'NODE_CIVICS_GONDOR_2' },
+    progressionTreeAdvisories: [ADVISORY.CLASS_MILITARY],
+    localizations: [{ name: 'Guard of the Citadel' }],
+}).bind([node1]);
+
+// 2. Create the tree and bind nodes
+const tree = new ProgressionTreeBuilder({
+    actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+    progressionTree: {
+        progressionTreeType: 'TREE_CIVICS_GONDOR',
+        ageType: AGE.ANTIQUITY,
+    },
+    progressionTreePrereqs: [{
+        node: node2.progressionTreeNode.progressionTreeNodeType,
+        prereqNode: node1.progressionTreeNode.progressionTreeNodeType,
+    }],
+    localizations: [{ name: 'Gondorian Civics' }],
+}).bind([node1, node2]);
+
+// 3. Bind tree to civilization so it is revealed correctly
+const civilization = new CivilizationBuilder({ /* ... */ });
+civilization.bind([tree]);
+
+mod.add([civilization, tree]);
+mod.build('./dist');
+```
+
+## ProgressionTreeBuilder options
+
+<ParamField path="actionGroupBundle" type="ActionGroupBundle" required>
+  When to load the tree files. Use `ACTION_GROUP_BUNDLE.AGE_ANTIQUITY`, `AGE_EXPLORATION`, or `AGE_MODERN`.
+</ParamField>
+
+<ParamField path="progressionTree" type="TPartialRequired<TProgressionTreeNode, 'progressionTreeType' | 'ageType'>" required>
+  Core tree data.
+
+  | Field | Type | Description |
+  |---|---|---|
+  | `progressionTreeType` | `string` | Unique tree identifier, e.g. `'TREE_CIVICS_GONDOR'` |
+  | `ageType` | `AGE` | The age this tree belongs to |
+</ParamField>
+
+<ParamField path="progressionTreePrereqs" type="TProgressionTreePrereqNode[]">
+  Node dependency edges. Each entry has `node` and `prereqNode` strings.
+
+  ```typescript
+  progressionTreePrereqs: [{
+      node: 'NODE_CIVICS_GONDOR_2',
+      prereqNode: 'NODE_CIVICS_GONDOR_1',
+  }]
+  ```
+</ParamField>
+
+<ParamField path="localizations" type="TProgressionTreeLocalization[]">
+  Display text for the tree.
+
+  | Field | Type | Description |
+  |---|---|---|
+  | `name` | `string` | Displayed tree name |
+</ParamField>
+
+### `tree.bind(nodes)`
+
+Bind `ProgressionTreeNodeBuilder` instances to the tree. This assigns `progressionTree` on every node, and merges node types, node rows, advisories, unlocks, prereqs, game effect modifiers, and localization into the tree's internal database nodes.
+
+```typescript
+tree.bind([node1, node2]);
+```
+
+## ProgressionTreeNodeBuilder options
+
+<ParamField path="progressionTreeNode" type="TPartialRequired<TProgressionTreeNodeNode, 'progressionTreeNodeType'>" required>
+  Core node data.
+
+  | Field | Type | Description |
+  |---|---|---|
+  | `progressionTreeNodeType` | `string` | Unique node identifier, e.g. `'NODE_CIVICS_GONDOR_1'` |
+  | `column` | `number` | Column position in the tree UI |
+  | `row` | `number` | Row position in the tree UI |
+  | `cost` | `number` | Research/culture cost |
+</ParamField>
+
+<ParamField path="progressionTreeAdvisories" type="TObjectValues<typeof ADVISORY>[]">
+  Advisor hints for this node. Use `ADVISORY` constants.
+
+  ```typescript
+  import { ADVISORY } from '@mateicanavra/civ7-sdk';
+
+  progressionTreeAdvisories: [ADVISORY.CLASS_FOOD, ADVISORY.CLASS_MILITARY]
+  ```
+</ParamField>
+
+<ParamField path="localizations" type="TProgressionTreeNodeLocalization[]">
+  Display text for this node.
+
+  | Field | Type | Description |
+  |---|---|---|
+  | `name` | `string` | Displayed node name |
+</ParamField>
+
+### `node.bind(items, unlockDepth?, hidden?)`
+
+Bind unlock targets to this node. Accepted types: `ModifierBuilder`, `ConstructibleBuilder`, `UnitBuilder`, `TraditionBuilder`.
+
+```typescript
+node.bind([modifier, tradition], 1, null);
+```
+
+| Arg | Type | Default | Description |
+|---|---|---|---|
+| `items` | `(ModifierBuilder \| ConstructibleBuilder \| UnitBuilder \| TraditionBuilder)[]` | — | Builders to unlock at this node |
+| `unlockDepth` | `number` | `1` | Depth in the unlock chain |
+| `hidden` | `boolean \| null` | `null` | Whether the unlock is hidden |
+
+## Output files
+
+`ProgressionTreeBuilder` writes under `/progression-trees/<kebab-type>/`:
+
+| File | Action group | Action |
+|---|---|---|
+| `current.xml` | `bundle.current` | `UpdateDatabase` |
+| `game-effects.xml` | `bundle.current` | `UpdateDatabase` |
+| `localization.xml` | `bundle.shell`, `bundle.always` | `UpdateText` |
+
+<Note>
+`ProgressionTreeNodeBuilder.build()` returns an empty array — node builders do not produce files by themselves. All their content is merged into the parent `ProgressionTreeBuilder` via `bind()`.
+</Note>

@@ -1,0 +1,322 @@
+---
+title: "Creating Civilizations"
+description: "Step-by-step guide to building a new civilization: planning, implementation, testing, and real-world examples."
+---
+
+This guide walks through creating a new civilization from scratch — from planning through testing — with practical XML examples.
+
+## Prerequisites
+
+- Familiarity with [Modding Architecture](/guides/community/modding-architecture)
+- Basic understanding of [Database Modding](/guides/official/database-modding)
+- The game's base files for reference
+
+## Planning your civilization
+
+### Choose an Age
+
+Every civilization is tied to one Age: **Antiquity**, **Exploration**, or **Modern**. Choose the Age that fits your civilization's historical prominence and the gameplay experience you want to create.
+
+### Core design elements
+
+Define these before writing any code:
+
+1. **Name** — the primary identifier
+2. **Core Ability** — the unique gameplay advantage
+3. **Unique Units** — special military or civilian units
+4. **Unique Infrastructure** — buildings, improvements, or quarters
+5. **Traditions** — policies unlocked through the unique Civic tree
+6. **Start Biases** — terrain and resource biases for starting location
+
+### Balance considerations
+
+- Give the civilization a clear niche without making it dominant
+- Design abilities that have strategic counters
+- Ensure unique elements synergize with each other
+
+---
+
+## Folder structure
+
+```text
+<GAME_DATA>/Mods/your-civilization-mod/
+├── civilizations/
+├── traditions/
+├── units/
+├── constructibles/
+├── progression-trees/
+├── text/
+└── your-mod-name.modinfo
+```
+
+---
+
+## Implementation
+
+### 1. Create the .modinfo file
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<Mod id="your-civilization-mod" version="1" xmlns="ModInfo">
+  <Properties>
+    <Name>Your Civilization Name</Name>
+    <Description>Description of your civilization mod</Description>
+    <Authors>Your Name</Authors>
+    <AffectsSavedGames>1</AffectsSavedGames>
+  </Properties>
+  <Dependencies>
+    <Mod id="base-standard" title="LOC_MODULE_BASE_STANDARD_NAME"/>
+  </Dependencies>
+  <ActionCriteria>
+    <Criteria id="age-antiquity-current">
+      <AgeInUse>AGE_ANTIQUITY</AgeInUse>
+    </Criteria>
+    <Criteria id="always">
+      <AlwaysMet/>
+    </Criteria>
+  </ActionCriteria>
+  <ActionGroups>
+    <ActionGroup id="main-group" scope="game" criteria="age-antiquity-current">
+      <Actions>
+        <UpdateDatabase>
+          <Item>civilizations/your_civilization.xml</Item>
+        </UpdateDatabase>
+      </Actions>
+    </ActionGroup>
+  </ActionGroups>
+</Mod>
+```
+
+### 2. Define the civilization
+
+Create `civilizations/your_civilization.xml`:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<Database>
+  <Civilizations>
+    <Row CivilizationType="CIVILIZATION_YOUR_CIV"
+         Name="LOC_CIVILIZATION_YOUR_CIV_NAME"
+         Description="LOC_CIVILIZATION_YOUR_CIV_DESCRIPTION"
+         Adjective="LOC_CIVILIZATION_YOUR_CIV_ADJECTIVE"
+         StartingCivilizationLevelType="CIVILIZATION_LEVEL_FULL_CIV"/>
+  </Civilizations>
+
+  <CivilizationTraits>
+    <Row TraitType="TRAIT_YOUR_CIV_ABILITY" CivilizationType="CIVILIZATION_YOUR_CIV"/>
+    <Row TraitType="TRAIT_ANTIQUITY_CIV"    CivilizationType="CIVILIZATION_YOUR_CIV"/>
+  </CivilizationTraits>
+
+  <CityNames>
+    <Row CivilizationType="CIVILIZATION_YOUR_CIV" CityName="LOC_CIVILIZATION_YOUR_CIV_CITY_NAMES_1"/>
+    <Row CivilizationType="CIVILIZATION_YOUR_CIV" CityName="LOC_CIVILIZATION_YOUR_CIV_CITY_NAMES_2"/>
+  </CityNames>
+
+  <StartBiasBiomes>
+    <Row CivilizationType="CIVILIZATION_YOUR_CIV" BiomeType="BIOME_PLAINS" Score="30"/>
+  </StartBiasBiomes>
+
+  <StartBiasResources>
+    <Row CivilizationType="CIVILIZATION_YOUR_CIV" ResourceType="RESOURCE_HORSES" Score="80"/>
+  </StartBiasResources>
+</Database>
+```
+
+### 3. Create the unique ability
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<Database>
+  <Types>
+    <Row Type="TRAIT_YOUR_CIV_ABILITY" Kind="KIND_TRAIT"/>
+  </Types>
+
+  <Traits>
+    <Row TraitType="TRAIT_YOUR_CIV_ABILITY"
+         Name="LOC_TRAIT_YOUR_CIV_ABILITY_NAME"
+         Description="LOC_TRAIT_YOUR_CIV_ABILITY_DESCRIPTION"
+         InternalOnly="true"/>
+  </Traits>
+
+  <Modifiers>
+    <Row ModifierId="MODIFIER_YOUR_CIV_ABILITY_EFFECT"
+         ModifierType="MODIFIER_PLAYER_ADJUST_YIELD_CHANGE"/>
+  </Modifiers>
+
+  <ModifierArguments>
+    <Row ModifierId="MODIFIER_YOUR_CIV_ABILITY_EFFECT" Name="YieldType" Value="YIELD_PRODUCTION"/>
+    <Row ModifierId="MODIFIER_YOUR_CIV_ABILITY_EFFECT" Name="Amount" Value="1"/>
+  </ModifierArguments>
+
+  <TraitModifiers>
+    <Row TraitType="TRAIT_YOUR_CIV_ABILITY" ModifierId="MODIFIER_YOUR_CIV_ABILITY_EFFECT"/>
+  </TraitModifiers>
+</Database>
+```
+
+### 4. Create a unique unit
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<Database>
+  <Types>
+    <Row Type="UNIT_YOUR_CIV_UNIQUE" Kind="KIND_UNIT"/>
+  </Types>
+
+  <Units>
+    <Row UnitType="UNIT_YOUR_CIV_UNIQUE"
+         Name="LOC_UNIT_YOUR_CIV_UNIQUE_NAME"
+         Description="LOC_UNIT_YOUR_CIV_UNIQUE_DESCRIPTION"
+         BaseMoves="2"
+         BaseSightRange="2"
+         Maintenance="3"
+         CoreClass="CORE_CLASS_MILITARY"
+         Domain="DOMAIN_LAND"
+         FormationClass="FORMATION_CLASS_LAND_COMBAT"
+         TraitType="TRAIT_YOUR_CIV"/>
+  </Units>
+
+  <Unit_Costs>
+    <Row UnitType="UNIT_YOUR_CIV_UNIQUE" YieldType="YIELD_PRODUCTION" Cost="150"/>
+  </Unit_Costs>
+
+  <Unit_Stats>
+    <Row UnitType="UNIT_YOUR_CIV_UNIQUE" Combat="35"/>
+  </Unit_Stats>
+
+  <UnitReplaces>
+    <Row CivUniqueUnitType="UNIT_YOUR_CIV_UNIQUE" ReplacesUnitType="UNIT_WARRIOR"/>
+  </UnitReplaces>
+</Database>
+```
+
+### 5. Create unique infrastructure
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<Database>
+  <Types>
+    <Row Type="BUILDING_YOUR_CIV_UNIQUE" Kind="KIND_BUILDING"/>
+  </Types>
+
+  <Buildings>
+    <Row BuildingType="BUILDING_YOUR_CIV_UNIQUE"
+         Name="LOC_BUILDING_YOUR_CIV_UNIQUE_NAME"
+         Description="LOC_BUILDING_YOUR_CIV_UNIQUE_DESCRIPTION"
+         TraitType="TRAIT_YOUR_CIV"
+         QuarterType="QUARTER_CITY_CENTER"
+         IsAgeless="true"
+         PurchaseYield="YIELD_GOLD"/>
+  </Buildings>
+
+  <Building_YieldChanges>
+    <Row BuildingType="BUILDING_YOUR_CIV_UNIQUE" YieldType="YIELD_FOOD" YieldChange="2"/>
+  </Building_YieldChanges>
+
+  <Building_Costs>
+    <Row BuildingType="BUILDING_YOUR_CIV_UNIQUE" YieldType="YIELD_PRODUCTION" Cost="120"/>
+  </Building_Costs>
+
+  <BuildingReplaces>
+    <Row CivUniqueBuildingType="BUILDING_YOUR_CIV_UNIQUE" ReplacesBuildingType="BUILDING_GRANARY"/>
+  </BuildingReplaces>
+</Database>
+```
+
+### 6. Add localization
+
+Create `text/your_civilization_text.xml`:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<Database>
+  <LocalizedText>
+    <Row Tag="LOC_CIVILIZATION_YOUR_CIV_NAME" Language="en_US">
+      <Text>Your Civilization</Text>
+    </Row>
+    <Row Tag="LOC_CIVILIZATION_YOUR_CIV_DESCRIPTION" Language="en_US">
+      <Text>Description of your civilization.</Text>
+    </Row>
+    <Row Tag="LOC_CIVILIZATION_YOUR_CIV_ADJECTIVE" Language="en_US">
+      <Text>Your Civ Adjective</Text>
+    </Row>
+    <Row Tag="LOC_CIVILIZATION_YOUR_CIV_CITY_NAMES_1" Language="en_US">
+      <Text>Capital City</Text>
+    </Row>
+    <Row Tag="LOC_CIVILIZATION_YOUR_CIV_CITY_NAMES_2" Language="en_US">
+      <Text>Second City</Text>
+    </Row>
+    <Row Tag="LOC_TRAIT_YOUR_CIV_ABILITY_NAME" Language="en_US">
+      <Text>Unique Ability Name</Text>
+    </Row>
+    <Row Tag="LOC_TRAIT_YOUR_CIV_ABILITY_DESCRIPTION" Language="en_US">
+      <Text>Description of what the ability does.</Text>
+    </Row>
+    <Row Tag="LOC_UNIT_YOUR_CIV_UNIQUE_NAME" Language="en_US">
+      <Text>Unique Unit Name</Text>
+    </Row>
+    <Row Tag="LOC_UNIT_YOUR_CIV_UNIQUE_DESCRIPTION" Language="en_US">
+      <Text>Description of your unique unit.</Text>
+    </Row>
+    <Row Tag="LOC_BUILDING_YOUR_CIV_UNIQUE_NAME" Language="en_US">
+      <Text>Unique Building Name</Text>
+    </Row>
+    <Row Tag="LOC_BUILDING_YOUR_CIV_UNIQUE_DESCRIPTION" Language="en_US">
+      <Text>Description of your unique building.</Text>
+    </Row>
+  </LocalizedText>
+</Database>
+```
+
+---
+
+## Testing
+
+<Steps>
+  <Step title="Install the mod">
+    Place your mod folder in `<GAME_DATA>/Mods/` and enable it in the Add-Ons menu.
+  </Step>
+  <Step title="Run initial tests">
+    Start a new game with your civilization. Verify the civilization appears, city names are correct, and unique elements show up.
+  </Step>
+  <Step title="Test abilities">
+    Test unique abilities, units, and buildings to confirm they function as designed.
+  </Step>
+  <Step title="Test age transitions">
+    Play through an Age transition. Verify traditions persist and no unexpected behavior occurs.
+  </Step>
+</Steps>
+
+### Common issues
+
+| Issue | Likely cause |
+|---|---|
+| Missing icons | Check atlas references and file paths |
+| Abilities not working | Verify modifier connections and `TraitModifiers` entries |
+| Game crash | Check XML syntax and required fields |
+| Unlocalized text | Ensure all `LOC_` keys have entries in the text file |
+
+---
+
+## Real-world example: Scythia
+
+The community-created Scythia mod by Izica demonstrates these principles:
+
+```text
+<GAME_DATA>/Mods/civmods-izica-civilization-scythia-38056/
+├── civilizations/
+├── traditions/
+├── units/          # Unique units like Saka Rider
+├── constructibles/
+├── progression-trees/
+├── imports/
+└── izica-civilization-scythia.modinfo
+```
+
+Key features: Antiquity Age placement, Saka Rider unique unit with increased mobility, plains start bias, and complete localization in multiple languages.
+
+**Further reading:**
+- [Modding Architecture](/guides/community/modding-architecture)
+- [Creating Leaders](/guides/community/creating-leaders)
+- [Mod Patterns](/guides/community/mod-patterns)
+- [TypeScript: Creating Civilizations](/guides/typescript/creating-civilizations)

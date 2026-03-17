@@ -1,0 +1,99 @@
+---
+title: "LeaderUnlockBuilder"
+description: "Configure which civilizations a leader can play as across age transitions."
+---
+
+`LeaderUnlockBuilder` generates the XML that allows a leader to unlock and play as a specific civilization. This is used to wire the civilization selection screen — including requirement sets, unlock rewards, and leader–civilization bias scores.
+
+## Basic usage
+
+```typescript
+import {
+    Mod,
+    LeaderUnlockBuilder,
+    CivilizationBuilder,
+    ACTION_GROUP_BUNDLE,
+    AGE,
+} from '@mateicanavra/civ7-sdk';
+
+const mod = new Mod({ id: 'my-mod', version: '1.0.0' });
+
+const leaderUnlock = new LeaderUnlockBuilder({
+    actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_EXPLORATION,
+    leaderUnlock: {
+        leaderType: 'LEADER_CATHERINE',
+        type: 'CIVILIZATION_GONDOR',
+        ageType: AGE.EXPLORATION,
+    },
+    leaderCivilizationBias: {
+        bias: 6,
+    },
+    localizations: [{
+        tooltip: '[B]Catherine[/B] once ruled [B]Gondor[/B].',
+    }],
+});
+
+const civilization = new CivilizationBuilder({ /* ... */ });
+civilization.bind([leaderUnlock]);
+
+mod.add([civilization, leaderUnlock]).build('./dist');
+```
+
+## Constructor options
+
+<ParamField path="actionGroupBundle" type="ActionGroupBundle" required>
+  When to load the unlock files. Should match the age in which the leader–civilization pairing becomes available.
+</ParamField>
+
+<ParamField path="leaderUnlock" type="TPartialRequired<TLeaderUnlockNode, 'leaderType' | 'type' | 'ageType'>" required>
+  Unlock definition.
+
+  | Field | Type | Description |
+  |---|---|---|
+  | `leaderType` | `string` | The leader type, e.g. `'LEADER_CATHERINE'` |
+  | `type` | `string` | The civilization type to unlock, e.g. `'CIVILIZATION_GONDOR'` |
+  | `ageType` | `AGE` | The age in which this unlock becomes available |
+</ParamField>
+
+<ParamField path="leaderCivilizationBias" type="Partial<TLeaderCivilizationBiasNode>">
+  AI bias settings controlling how strongly the AI prefers this leader–civilization combination.
+
+  | Field | Type | Description |
+  |---|---|---|
+  | `bias` | `number` | Preference score. Higher values make the AI more likely to pick this pairing. |
+</ParamField>
+
+<ParamField path="localizations" type="Partial<TLeaderUnlockLocalization>[]">
+  Display text for the unlock entry in the civilization selection screen.
+
+  | Field | Type | Description |
+  |---|---|---|
+  | `tooltip` | `string` | Historical blurb shown for the leader–civilization pairing |
+</ParamField>
+
+## How binding works
+
+When you pass a `LeaderUnlockBuilder` to `CivilizationBuilder.bind()`, the civilization builder automatically:
+
+1. Adds a `LeaderUnlock` row to `shell.xml`.
+2. Adds a `LeaderCivilizationBias` row.
+3. Derives the bias `civilizationType` and `reasonType` from the unlock configuration.
+
+You must still add the `LeaderUnlockBuilder` to `mod.add()` separately — `bind()` does not register the builder with the mod.
+
+## What gets generated
+
+The builder creates:
+- A `KIND_UNLOCK` kind entry (insert-or-ignore).
+- A `Types` row for the unlock.
+- `Unlocks`, `UnlockRewards`, `UnlockRequirements`, `UnlockConfigurationValues` rows.
+- A `RequirementSet`, `Requirement`, and `RequirementArgument` that gates the unlock on `PLAYER_LEADER_TYPE_MATCHES`.
+
+## Output files
+
+Files are written under `/unlocks/<leader>-<civ>/`:
+
+| File | Action group | Action |
+|---|---|---|
+| `always.xml` | `bundle.always` | `UpdateDatabase` |
+| `localization.xml` | `bundle.shell`, `bundle.always` | `UpdateText` |

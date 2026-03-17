@@ -1,0 +1,135 @@
+---
+title: "Modding Architecture"
+sidebarTitle: "Architecture"
+description: "How Civilization VII's modular structure works and how mods integrate with the game's Age system."
+---
+
+Civilization VII uses a highly modular architecture built around **modules** — self-contained content packages that load independently. The base game itself is a collection of interconnected mods, which makes Civ VII inherently more moddable than its predecessors.
+
+## Core structure
+
+The game's content is divided into three module categories:
+
+| Module type | Description |
+|---|---|
+| **Base Modules** | Fundamental game systems shared across all content |
+| **Age Modules** | Era-specific content (Antiquity, Exploration, Modern) |
+| **Standard Modules** | Core gameplay definitions and shared resources |
+
+Each module has its own `.modinfo` file and follows a consistent directory layout:
+
+```text
+<GAME_RESOURCES>/Base/modules/module-name/
+├── module-name.modinfo
+├── config/
+├── data/
+│   ├── civilizations.xml
+│   ├── leaders.xml
+│   ├── units.xml
+│   └── ...
+├── definitions/    # (.civdb schema files, base-standard only)
+├── text/
+├── ui/
+├── scripts/
+└── movies/
+```
+
+**Key distinction:** `base-standard` contains `definitions/` with `.civdb` schema files that define the game's structure. Age modules focus on era-specific content. DLC modules follow the same structure as community mods.
+
+## The Ages system
+
+Civilization VII's Ages system directly shapes how modding works:
+
+- **Civilizations** are tied to a specific Age (Antiquity, Exploration, or Modern)
+- **Leaders** can span Ages but may have Age-specific bonuses
+- **Units and buildings** must be assigned to an Age or marked as "Ageless"
+- **Traditions** persist across Ages as policies
+
+Content that should be available across Age transitions must be explicitly designed for that persistence.
+
+## Module relationships
+
+Base game content is spread across modules that depend on each other:
+
+- **`base-standard`** — core gameplay rules and shared systems
+- **`age-antiquity`**, **`age-exploration`**, **`age-modern`** — Age-specific content
+
+Custom mods interact with these modules through dependencies (required) or references (load order only). Both are declared in the `.modinfo` file.
+
+## How mods load
+
+When Civilization VII loads a mod:
+
+<Steps>
+  <Step title="Read .modinfo">
+    The game reads the mod's `.modinfo` to identify dependencies and actions.
+  </Step>
+  <Step title="Check criteria">
+    Action groups are evaluated against their criteria (Age, game mode, active mods, etc.).
+  </Step>
+  <Step title="Apply database updates">
+    SQL/XML files are run against the appropriate database scope (shell or game).
+  </Step>
+  <Step title="Merge text">
+    Localization updates are merged with existing text.
+  </Step>
+  <Step title="Load UI and scripts">
+    JavaScript files and UI modifications are applied.
+  </Step>
+</Steps>
+
+## Database approach
+
+Most Civ VII modding uses one of three operations:
+
+| Operation | When to use |
+|---|---|
+| **Insertions** | Adding new content (civilizations, units, buildings) |
+| **Updates** | Modifying existing values (unit stats, building yields) |
+| **Replacements** | Completely replacing entries (changing text, behaviors) |
+
+Key schema files for reference:
+- `<GAME_RESOURCES>/Base/Assets/schema/gameplay/01_GameplaySchema.sql`
+- `<GAME_RESOURCES>/Base/Assets/schema/modding/schema-modding-10.sql`
+- `<GAME_RESOURCES>/Base/Assets/schema/icons/IconManager.sql`
+- `<GAME_RESOURCES>/Base/Assets/schema/loc/schema-loc-10.sql`
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Organization">
+    - Use a unique prefix for all content identifiers (e.g., `UNIT_MYMOD_SCOUT` not `UNIT_SCOUT`)
+    - Organize files by content type: `data/`, `text/`, `ui/`, `scripts/`
+    - Comment XML for future reference
+  </Accordion>
+
+  <Accordion title="Compatibility">
+    - Declare explicit dependencies on base modules
+    - Use conditional loading (`AgeInUse` criteria) for Age-specific content
+    - Never edit base game files directly — use `UpdateDatabase` to add or override entries
+    - Test with other popular mods when possible
+  </Accordion>
+
+  <Accordion title="Technical execution">
+    - Follow naming conventions from base game files
+    - Test incrementally during development
+    - Check `Database.log` for errors
+    - Use `CopyDatabasesToDisk 1` in `AppOptions.txt` to inspect the resulting SQLite database
+  </Accordion>
+</AccordionGroup>
+
+## Typical workflow
+
+1. **Plan** — define scope and determine which Ages and modules you're targeting
+2. **Setup** — create the mod folder and `.modinfo`
+3. **Implement** — write XML/SQL data, localization, and scripts
+4. **Test** — run the game, check logs, verify behavior
+5. **Iterate** — refine based on testing
+6. **Distribute** — package and share via Steam Workshop
+
+## Further reading
+
+- [Creating Civilizations](/guides/community/creating-civilizations)
+- [Creating Leaders](/guides/community/creating-leaders)
+- [Mod Patterns](/guides/community/mod-patterns)
+- Official docs: [Getting Started](/guides/official/getting-started)

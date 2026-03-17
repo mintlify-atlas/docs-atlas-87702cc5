@@ -1,0 +1,74 @@
+---
+title: "SDK overview"
+description: "A TypeScript SDK for programmatically generating Civilization VII mods — type-safe builders, low-level node control, and comprehensive game constants."
+---
+
+The `@mateicanavra/civ7-sdk` package lets you write Civilization VII mods entirely in TypeScript. Instead of editing XML files by hand, you instantiate builders, configure them with typed options, and call `mod.build()` to generate a complete mod directory — including the `.modinfo` file and all XML.
+
+## Two APIs
+
+The SDK exposes two layers. You can use either one, or mix them in the same mod.
+
+<CardGroup cols={2}>
+  <Card title="High-level builders" icon="hammer" href="/sdk/builders/unit-builder">
+    Builders handle all the boilerplate — `TypeNode` registration, action group assignment, localization wiring. Start here.
+  </Card>
+  <Card title="Low-level nodes" icon="code" href="/sdk/low-level/nodes">
+    Work directly with `DatabaseNode`, `UnitNode`, `XmlFile`, and friends when you need exact control over the XML output.
+  </Card>
+</CardGroup>
+
+## Installation
+
+```bash
+bun add @mateicanavra/civ7-sdk
+```
+
+## Quick example
+
+```typescript
+import { Mod, UnitBuilder, ACTION_GROUP_BUNDLE, UNIT_CLASS, UNIT } from '@mateicanavra/civ7-sdk';
+
+const mod = new Mod({
+    id: 'my-first-mod',
+    version: '1.0.0',
+});
+
+const unit = new UnitBuilder({
+    actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+    typeTags: [UNIT_CLASS.RECON, UNIT_CLASS.RECON_ABILITIES],
+    unit: {
+        unitType: 'UNIT_CUSTOM_SCOUT',
+        baseMoves: 2,
+        baseSightRange: 10,
+    },
+    unitCost: { cost: 20 },
+    unitStat: { combat: 0 },
+    unitReplace: { replacesUnitType: UNIT.SCOUT },
+    visualRemap: { to: UNIT.ARMY_COMMANDER },
+    localizations: [
+        { name: 'Custom Scout', description: 'An enhanced recon unit' }
+    ],
+});
+
+mod.add([unit]).build('./my-mod');
+```
+
+Running this script writes `my-mod/my-first-mod.modinfo` plus all required XML files under `my-mod/units/unit-custom-scout/`.
+
+## What the SDK covers
+
+<CardGroup cols={2}>
+  <Card title="Builders" icon="wrench" href="/sdk/builders/unit-builder">
+    `UnitBuilder`, `CivilizationBuilder`, `ConstructibleBuilder`, `ProgressionTreeBuilder`, `ModifierBuilder`, `TraditionBuilder`, `UniqueQuarterBuilder`, `LeaderUnlockBuilder`, `ImportFileBuilder`
+  </Card>
+  <Card title="Low-level API" icon="file-code" href="/sdk/low-level/nodes">
+    XML nodes (`DatabaseNode`, `UnitNode`, `TypeNode`, …), `XmlFile`, `BaseFile`, `ActionGroupBundle`
+  </Card>
+  <Card title="Constants" icon="list" href="/sdk/constants/overview">
+    Typed game constants for units, abilities, effects, terrains, resources, ages, and more — all exported from the package root.
+  </Card>
+  <Card title="Localization" icon="language" href="/sdk/core-concepts">
+    Built-in multi-language support. Pass a `localizations` array to any builder.
+  </Card>
+</CardGroup>

@@ -1,0 +1,115 @@
+---
+title: "ImportFileBuilder"
+description: "Import SQL files and custom assets (icons, images) into your mod."
+---
+
+`ImportFileBuilder` copies a file from your source directory into the mod output and registers it with the correct action group and action. Use it for SQL patches, custom icon images, and other binary assets.
+
+<Note>
+The builder checks whether the source file exists at build time. If it does not, the file is silently skipped and no output is written.
+</Note>
+
+## Import a custom icon
+
+```typescript
+import {
+    Mod,
+    ImportFileBuilder,
+    CivilizationBuilder,
+    ACTION_GROUP_BUNDLE,
+} from '@mateicanavra/civ7-sdk';
+
+const mod = new Mod({ id: 'mod-gondor', version: '1.0.0' });
+
+// Import a civilization icon
+const civIcon = new ImportFileBuilder({
+    actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+    content: './assets/civ-icon.png',
+    name: 'civ_sym_gondor',
+});
+
+// Reference the icon name from another builder
+const civilization = new CivilizationBuilder({
+    actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+    civilization: {
+        civilizationType: 'CIVILIZATION_GONDOR',
+        domain: 'AntiquityAgeCivilizations',
+    },
+    icon: {
+        path: `fs://game/${mod.id}/${civIcon.name}`,
+    },
+    localizations: [{ name: 'Gondor' }],
+});
+
+mod.add([civilization, civIcon]).build('./dist');
+```
+
+## Import a SQL file
+
+```typescript
+import {
+    Mod,
+    ImportFileBuilder,
+    ACTION_GROUP,
+    ACTION_GROUP_ACTION,
+} from '@mateicanavra/civ7-sdk';
+
+const mod = new Mod({ id: 'my-mod', version: '1.0.0' });
+
+// SQL file with explicit action groups
+const sqlPatch = new ImportFileBuilder({
+    content: './assets/my-patch.sql',
+    actionGroups: [ACTION_GROUP.SHELL, ACTION_GROUP.AGE_ANTIQUITY_CURRENT],
+    actionGroupActions: [ACTION_GROUP_ACTION.UPDATE_TEXT],
+});
+
+mod.add([sqlPatch]).build('./dist');
+```
+
+## Constructor options
+
+<ParamField path="content" type="string" required>
+  Path to the source file on disk. Relative paths are resolved from the current working directory when the script runs.
+</ParamField>
+
+<ParamField path="name" type="string">
+  Output file name. If omitted, defaults to `path.basename(content)` — the original file name.
+
+  ```typescript
+  // content: './assets/civ-icon.png', name: 'civ_sym_gondor'
+  // Output file will be named 'civ_sym_gondor'
+  ```
+</ParamField>
+
+<ParamField path="actionGroupBundle" type="ActionGroupBundle">
+  Pre-built action group bundle. When `actionGroups` is not provided, the builder uses `bundle.shell` and `bundle.always` with `ACTION_GROUP_ACTION.IMPORT_FILES`.
+</ParamField>
+
+<ParamField path="actionGroups" type="ActionGroupNode[]">
+  Explicit action group list. Overrides `actionGroupBundle` when provided.
+
+  ```typescript
+  import { ACTION_GROUP } from '@mateicanavra/civ7-sdk';
+
+  actionGroups: [ACTION_GROUP.SHELL, ACTION_GROUP.AGE_ANTIQUITY_CURRENT]
+  ```
+</ParamField>
+
+<ParamField path="actionGroupActions" type="TObjectValues<typeof ACTION_GROUP_ACTION>[]">
+  Explicit action list. Overrides the default `IMPORT_FILES` when provided.
+
+  ```typescript
+  import { ACTION_GROUP_ACTION } from '@mateicanavra/civ7-sdk';
+
+  actionGroupActions: [ACTION_GROUP_ACTION.UPDATE_TEXT]
+  ```
+</ParamField>
+
+## Default behavior
+
+When no `actionGroups` or `actionGroupActions` are set, the builder defaults to:
+
+- Action groups: `bundle.shell` + `bundle.always`
+- Action: `ACTION_GROUP_ACTION.IMPORT_FILES`
+
+This is correct for most binary asset imports. Use explicit overrides only for SQL files or files that require a different load phase.

@@ -1,0 +1,106 @@
+---
+title: "TraditionBuilder"
+description: "Create custom policy cards (traditions) that players can slot for passive bonuses."
+---
+
+`TraditionBuilder` generates all XML for a custom tradition (policy card): the `Traditions` row, type registration, linked modifiers, and localization.
+
+## Basic usage
+
+```typescript
+import {
+    Mod,
+    TraditionBuilder,
+    ModifierBuilder,
+    ACTION_GROUP_BUNDLE,
+    COLLECTION,
+    EFFECT,
+} from '@mateicanavra/civ7-sdk';
+
+const mod = new Mod({ id: 'my-mod', version: '1.0.0' });
+
+const tradition = new TraditionBuilder({
+    actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+    tradition: {
+        traditionType: 'TRADITION_GONDOR_MARTIAL_LAW',
+    },
+    localizations: [{
+        name: 'Martial Law',
+        description: 'Your cities produce more soldiers.',
+    }],
+}).bind([
+    new ModifierBuilder({
+        modifier: {
+            collection: COLLECTION.OWNER,
+            effect: EFFECT.CITY_ADJUST_UNIT_PRODUCTION,
+            arguments: [
+                { name: 'Amount', value: 10 },
+            ],
+        },
+        localizations: [{ description: '+10% unit production in all cities' }],
+    }),
+]);
+
+mod.add([tradition]).build('./dist');
+```
+
+## Constructor options
+
+<ParamField path="actionGroupBundle" type="ActionGroupBundle" required>
+  When to load the tradition's files.
+</ParamField>
+
+<ParamField path="tradition" type="TPartialRequired<TTraditionNode, 'traditionType'>" required>
+  Core tradition data.
+
+  | Field | Type | Description |
+  |---|---|---|
+  | `traditionType` | `string` | Unique identifier, e.g. `'TRADITION_GONDOR_MARTIAL_LAW'` |
+  | `traditionClassType` | `string` | Tradition class for slot requirements |
+  | `cost` | `number` | Culture cost to adopt |
+  | `era` | `string` | Era this tradition becomes available |
+</ParamField>
+
+<ParamField path="localizations" type="Partial<TTraditionLocalization>[]">
+  Display text.
+
+  | Field | Type | Description |
+  |---|---|---|
+  | `name` | `string` | Tradition name |
+  | `description` | `string` | Description shown in the policy panel |
+</ParamField>
+
+## Binding modifiers
+
+Call `tradition.bind(items)` to attach modifiers. Accepted types: `ModifierBuilder`, `ConstructibleBuilder`, `UnitBuilder`.
+
+For each `ModifierBuilder`:
+- The modifier is added to `game-effects.xml`.
+- If the modifier is not detached (`isDetached: false`), a `TraditionModifier` row is added linking the modifier to this tradition.
+- The modifier's localizations are merged into `localization.xml`.
+
+```typescript
+tradition.bind([
+    new ModifierBuilder({ /* ... */ }),
+]);
+```
+
+## Using traditions as progression tree node unlocks
+
+Bind a `TraditionBuilder` to a `ProgressionTreeNodeBuilder` to make the tradition available when the node is researched:
+
+```typescript
+import { ProgressionTreeNodeBuilder } from '@mateicanavra/civ7-sdk';
+
+progressionTreeNode.bind([tradition]);
+```
+
+This creates a `ProgressionTreeNodeUnlock` row with `targetKind: KIND.TRADITION`.
+
+## Output files
+
+| File | Action group | Action |
+|---|---|---|
+| `current.xml` | `bundle.current` | `UpdateDatabase` |
+| `game-effects.xml` | `bundle.current` | `UpdateDatabase` |
+| `localization.xml` | `bundle.shell`, `bundle.always` | `UpdateText` |

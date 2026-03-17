@@ -1,0 +1,191 @@
+---
+title: "Leaders & Ages"
+description: "Associate leaders with civilizations and manage age-specific content using LeaderUnlockBuilder and CivilizationUnlockBuilder."
+---
+
+In Civilization VII, leaders and civilizations are separate entities that can be mixed and matched. The TypeScript tools provide `LeaderUnlockBuilder` and `CivilizationUnlockBuilder` for managing these associations and Age transitions.
+
+## Associating a leader with a civilization
+
+Use `LeaderUnlockBuilder` to link an existing leader to your custom civilization:
+
+```typescript
+import {
+  ACTION_GROUP_BUNDLE,
+  LeaderUnlockBuilder,
+  Mod,
+  AGE
+} from "civ7-modding-tools";
+
+const mod = new Mod({ id: "my-leader-mod", version: "1.0" });
+
+const decebalusLeadsDacia = new LeaderUnlockBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+
+  leaderUnlock: {
+    leaderType: "LEADER_DECEBALUS",   // Existing game leader
+    type: "CIVILIZATION_DACIA",        // Your custom civilization
+    ageType: AGE.ANTIQUITY,
+  },
+
+  // AI preference weight for this pairing
+  leaderCivilizationBias: {
+    bias: 10,
+  },
+
+  // Tooltip in the leader selection screen
+  localizations: [{
+    tooltip: "[B]Decebalus[/B] ruled [B]Dacia[/B]."
+  }]
+});
+
+mod.add([decebalusLeadsDacia]).build("./dist");
+```
+
+When you bind a `LeaderUnlockBuilder` to a `CivilizationBuilder`, the SDK wires up the shell-scope `LeaderUnlocks` and `LeaderCivilizationBias` entries automatically:
+
+```typescript
+const dacia = new CivilizationBuilder({ /* ... */ });
+dacia.bind([decebalusLeadsDacia]);
+```
+
+## Multiple leaders for one civilization
+
+```typescript
+const decebalusLeadsDacia = new LeaderUnlockBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  leaderUnlock: { leaderType: "LEADER_DECEBALUS", type: "CIVILIZATION_DACIA", ageType: AGE.ANTIQUITY },
+  leaderCivilizationBias: { bias: 10 },
+  localizations: [{ tooltip: "[B]Decebalus[/B] ruled [B]Dacia[/B]." }]
+});
+
+const burebistLeadsDacia = new LeaderUnlockBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  leaderUnlock: { leaderType: "LEADER_BUREBISTA", type: "CIVILIZATION_DACIA", ageType: AGE.ANTIQUITY },
+  leaderCivilizationBias: { bias: 8 },
+  localizations: [{ tooltip: "[B]Burebista[/B] led [B]Dacia[/B] to its greatest extent." }]
+});
+
+dacia.bind([decebalusLeadsDacia, burebistLeadsDacia]);
+mod.add([dacia, decebalusLeadsDacia, burebistLeadsDacia]).build("./dist");
+```
+
+## Civilization Age transitions
+
+Use `CivilizationUnlockBuilder` to define what civilization a player transitions to when the Age changes:
+
+```typescript
+import { CivilizationUnlockBuilder, AGE } from "civ7-modding-tools";
+
+const daciaTransitionsToRome = new CivilizationUnlockBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_EXPLORATION,
+
+  from: {
+    civilizationType: "CIVILIZATION_DACIA",
+    ageType: AGE.ANTIQUITY,
+  },
+  to: {
+    civilizationType: "CIVILIZATION_ROME",
+    ageType: AGE.EXPLORATION,
+  },
+});
+
+mod.add([daciaTransitionsToRome]).build("./dist");
+```
+
+## Leader transitions between Ages
+
+Define how a leader transitions when their civilization changes Age:
+
+```typescript
+const decebalusToTrajan = new LeaderUnlockBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_EXPLORATION,
+  leaderUnlock: {
+    leaderType: "LEADER_TRAJAN",         // New leader in the new Age
+    type: "CIVILIZATION_ROME",           // New civilization
+    ageType: AGE.EXPLORATION,
+    fromLeaderType: "LEADER_DECEBALUS",  // Previous leader
+    fromAgeType: AGE.ANTIQUITY           // Previous Age
+  },
+  localizations: [{
+    tooltip: `As Rome conquered Dacia, [B]Trajan[/B] now leads the [B]Roman[/B] empire.`
+  }]
+});
+
+mod.add([decebalusToTrajan]).build("./dist");
+```
+
+## Age-specific leader abilities
+
+Create modifiers that only apply in certain Ages using requirement checks:
+
+```typescript
+import { ModifierBuilder, COLLECTION, EFFECT, REQUIREMENT, AGE } from "civ7-modding-tools";
+
+const ancientLeaderBonus = new ModifierBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  modifier: {
+    collection: COLLECTION.PLAYER_UNITS,
+    effect: EFFECT.UNIT_ADJUST_COMBAT_STRENGTH,
+    permanent: true,
+    requirements: [{
+      type: REQUIREMENT.PLAYER_IS_IN_AGE,
+      arguments: [{ name: "AgeType", value: AGE.ANTIQUITY }]
+    }],
+    arguments: [{ name: "Amount", value: 5 }]
+  },
+  localizations: [{
+    description: "Military Legacy: +5 Combat Strength in the Antiquity Age."
+  }]
+});
+```
+
+## Creating entirely new leaders
+
+The SDK doesn't include a `LeaderBuilder`. To create a fully new leader, write XML directly and import it:
+
+```typescript
+import { ImportFileBuilder, ACTION_GROUP_BUNDLE, ACTION_GROUP_ACTION, Mod } from "civ7-modding-tools";
+
+const mod = new Mod({ id: "my-custom-leader-mod", version: "1.0" });
+
+const leaderDefinition = new ImportFileBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  content: `<?xml version="1.0" encoding="utf-8"?>
+<Database>
+  <Types>
+    <Row Type="LEADER_YOUR_LEADER" Kind="KIND_LEADER"/>
+  </Types>
+  <Leaders>
+    <Row LeaderType="LEADER_YOUR_LEADER"
+         Name="LOC_LEADER_YOUR_LEADER_NAME"
+         InheritFrom="LEADER_DEFAULT"
+         Description="LOC_LEADER_YOUR_LEADER_DESCRIPTION"/>
+  </Leaders>
+  <LeaderTraits>
+    <Row LeaderType="LEADER_YOUR_LEADER" TraitType="TRAIT_LEADER_YOUR_ABILITY"/>
+  </LeaderTraits>
+</Database>`,
+  name: "leaders/your_leader.xml",
+  actionGroupActions: [ACTION_GROUP_ACTION.UPDATE_DATABASE]
+});
+
+mod.add([leaderDefinition]).build("./dist");
+```
+
+<Note>
+  For full leader creation including traits, agendas, and diplomatic responses in XML, see the [Creating Leaders](/guides/community/creating-leaders) general guide.
+</Note>
+
+## Best practices
+
+1. **Historical sense** — Age transitions should reflect plausible historical progression
+2. **Gameplay balance** — check that leader abilities work well with each civilization they can lead
+3. **Civilization synergy** — leader abilities should complement the civilization's strengths
+4. **Bias values** — higher `bias` values mean the AI is more likely to choose this pairing
+
+## Related guides
+
+- [Creating Civilizations](/guides/typescript/creating-civilizations)
+- [Modifiers & Effects](/guides/typescript/modifiers-and-effects)
+- [Community: Creating Leaders](/guides/community/creating-leaders)

@@ -1,0 +1,95 @@
+---
+title: 'data zip'
+description: 'Create a zip archive of Civilization VII game resources based on a named profile.'
+---
+
+`civ7 data zip` packages game resources into a zip archive. The source directory, output path, and include/exclude patterns are all controlled by profiles defined in `civ.config.jsonc`.
+
+```bash
+civ7 data zip [profile] [zipfile]
+```
+
+## Arguments
+
+<ParamField path="profile" type="string" default="default">
+  The profile to use from the config file. Profiles define include/exclude glob patterns that control which files end up in the archive. Built-in profiles in the default config are `default`, `full`, and `assets`.
+</ParamField>
+
+<ParamField path="zipfile" type="string">
+  Override the output path for the zip archive. When omitted, the path is resolved from `outputs.zip.dir` and `outputs.zip.name` in the config for the selected profile.
+</ParamField>
+
+## Flags
+
+<ParamField query="--config" type="string">
+  Path to a `civ.config.jsonc` file.
+</ParamField>
+
+<ParamField query="-v, --verbose" type="boolean" default="false">
+  Enable verbose output, logging each file as it is added to the archive.
+</ParamField>
+
+<ParamField query="--installDir" type="string">
+  Override the Civilization VII install directory (the source of files to zip). When omitted, the value is taken from `inputs.installDir` in the config.
+</ParamField>
+
+## Output summary
+
+After the archive is created, the CLI prints a summary table:
+
+```
++------------------------------------------------------+
+| Zip Operation Summary for Profile: 'default'         |
++-----------------------------+------------------------+
+| Uncompressed Size           | 1.23 GB                |
+| Final Archive Size          | 456.78 MB              |
++-----------------------------+------------------------+
+```
+
+<Warning>
+  If the resulting archive exceeds 100 MB, the CLI will warn you that it exceeds GitHub's file size limit. Consider using Git LFS or a different hosting solution for large archives.
+</Warning>
+
+## Profiles
+
+The default `civ.config.jsonc` ships with three profiles:
+
+| Profile | Description |
+|---|---|
+| `default` | Core gameplay data, excluding large binary assets (icons, movies, fonts, shaders) |
+| `full` | All game resources with no exclusions |
+| `assets` | Only media assets — icons, fonts, movies |
+
+See the [configuration reference](/cli/configuration) for how to define custom profiles.
+
+## Examples
+
+Zip using the `default` profile:
+
+```bash
+civ7 data zip
+```
+
+Zip using the `full` profile:
+
+```bash
+civ7 data zip full
+```
+
+Zip with verbose file logging:
+
+```bash
+civ7 data zip --verbose assets
+```
+
+Zip with a custom config file:
+
+```bash
+civ7 data zip --config ./my-config.jsonc default
+```
+
+Write the archive to a specific path:
+
+```bash
+civ7 data zip default ./my-custom-archive.zip
+```

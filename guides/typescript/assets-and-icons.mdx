@@ -1,0 +1,184 @@
+---
+title: "Assets & Icons"
+description: "Import custom PNG icons and reference them in game elements using ImportFileBuilder."
+---
+
+Custom assets — icons, portraits, textures — bring your mod to life visually. Use `ImportFileBuilder` to import them and reference them in your builders.
+
+## Importing an asset
+
+```typescript
+import {
+  ACTION_GROUP_BUNDLE,
+  ImportFileBuilder,
+  Mod
+} from "civ7-modding-tools";
+
+const mod = new Mod({ id: "my-assets-mod", version: "1.0" });
+
+// Import a single icon
+const unitIcon = new ImportFileBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  content: "./assets/unit-icon.png",   // Path to the file on disk
+  name: "unit_icon_custom"              // Internal name used to reference the asset
+});
+
+mod.add([unitIcon]).build("./dist");
+```
+
+## Common asset types
+
+```typescript
+// Civilization icon (shown in selection screen)
+const civIcon = new ImportFileBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  content: "./assets/civ-icon.png",
+  name: "civ_sym_custom"
+});
+
+// Leader portrait (shown in diplomacy screens)
+const leaderPortrait = new ImportFileBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  content: "./assets/leader-portrait.png",
+  name: "leader_custom"
+});
+
+// Unit icon (shown in unit panel)
+const unitIcon = new ImportFileBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  content: "./assets/unit-icon.png",
+  name: "unit_icon_custom"
+});
+
+// Building icon (shown in city production panel)
+const buildingIcon = new ImportFileBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  content: "./assets/building-icon.png",
+  name: "building_icon_custom"
+});
+```
+
+## Referencing assets in builders
+
+After importing, reference the asset using the `fs://game/` path format:
+
+```typescript
+import { CivilizationBuilder, UnitBuilder } from "civ7-modding-tools";
+
+const mod = new Mod({ id: "dacia-assets-mod", version: "1.0" });
+
+const civIcon = new ImportFileBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  content: "./assets/dacia-icon.png",
+  name: "civ_sym_dacia"
+});
+
+const unitIcon = new ImportFileBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  content: "./assets/falx-warrior-icon.png",
+  name: "unit_icon_falx_warrior"
+});
+
+// Reference in CivilizationBuilder
+const dacia = new CivilizationBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  civilization: {
+    domain: "AntiquityAgeCivilizations",
+    civilizationType: "CIVILIZATION_DACIA"
+  },
+  icon: {
+    path: `fs://game/${mod.id}/${civIcon.name}`  // → fs://game/dacia-assets-mod/civ_sym_dacia
+  },
+  localizations: [{ name: "Dacia" /* ... */ }]
+});
+
+// Reference in UnitBuilder
+const falxWarrior = new UnitBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  unit: { unitType: "UNIT_FALX_WARRIOR" },
+  unitCost: { cost: 90 },
+  unitStat: { combat: 35 },
+  icon: {
+    path: `fs://game/${mod.id}/${unitIcon.name}`  // → fs://game/dacia-assets-mod/unit_icon_falx_warrior
+  },
+  localizations: [{ name: "Falx Warrior", description: "Dacian warrior." }]
+});
+
+mod.add([civIcon, unitIcon, dacia, falxWarrior]).build("./dist");
+```
+
+## Path format
+
+```typescript
+// Template
+const path = `fs://game/${mod.id}/${assetName}`;
+
+// Examples
+`fs://game/my-mod/civ_sym_dacia`        // Civilization icon
+`fs://game/my-mod/unit_icon_falx_warrior` // Unit icon
+```
+
+| Segment | Description |
+|---|---|
+| `fs://game/` | Required prefix for game file system assets |
+| `${mod.id}` | Your mod's ID (creates a namespace to avoid collisions) |
+| `${assetName}` | The `name` you set in `ImportFileBuilder` |
+
+## Asset specifications
+
+| Asset type | Format | Recommended size |
+|---|---|---|
+| Civilization icon | PNG | 256 × 256 px |
+| Unit icon | PNG | 128 × 128 px |
+| Leader portrait | PNG | 512 × 768 px |
+| Building icon | PNG | 128 × 128 px |
+| Tradition icon | PNG | 128 × 128 px |
+
+- Use transparency (alpha channel) for non-rectangular icons
+- Keep file names lowercase with underscores
+- Organize assets in subfolders: `assets/units/`, `assets/buildings/`, etc.
+
+## Age-specific assets
+
+Import different assets per Age:
+
+```typescript
+// Antiquity version
+const antiquityIcon = new ImportFileBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  content: "./assets/unit-antiquity.png",
+  name: "unit_icon_antiquity"
+});
+
+// Exploration version
+const explorationIcon = new ImportFileBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_EXPLORATION,
+  content: "./assets/unit-exploration.png",
+  name: "unit_icon_exploration"
+});
+
+// Reference the correct icon in each Age's unit
+const antiquityUnit = new UnitBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  unit: { unitType: "UNIT_CUSTOM_ANTIQUITY" },
+  icon: { path: `fs://game/${mod.id}/${antiquityIcon.name}` },
+  // ...
+});
+```
+
+## Troubleshooting
+
+| Issue | Check |
+|---|---|
+| Icon not showing | Verify `content` path exists on disk |
+| Wrong icon displayed | Confirm `name` matches what you reference in the builder |
+| Missing icon at runtime | Ensure the `ImportFileBuilder` is added to `mod.add([...])` |
+| Name conflict | Use a unique prefix in asset names to avoid collisions with base game |
+| Wrong Age | Confirm `actionGroupBundle` matches where the asset is used |
+
+## Related guides
+
+- [Creating Units](/guides/typescript/creating-units)
+- [Creating Buildings](/guides/typescript/creating-buildings)
+- [Creating Civilizations](/guides/typescript/creating-civilizations)
+- Official docs: [Localization, Icons, and Colors](/guides/official/database-modding)

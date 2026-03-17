@@ -1,0 +1,135 @@
+---
+title: 'data explore'
+description: 'Run the full crawl → render → viewer pipeline for a seed entity in one command.'
+---
+
+`civ7 data explore` is the all-in-one pipeline command. It crawls the XML graph for a seed, renders the DOT output to SVG, optionally emits an interactive HTML viewer, and can serve or open the result directly in your browser.
+
+```bash
+civ7 data explore <seed> [outDir]
+```
+
+## Pipeline stages
+
+1. **Crawl** — BFS traversal from the seed, same as [`civ7 data crawl`](/cli/commands/data-crawl).
+2. **Render** — DOT → SVG via WebAssembly Graphviz (no native installation required).
+3. **HTML viewer** — Optionally wraps the SVG in a self-contained `graph.html` with mouse-wheel zoom, drag-to-pan, double-click-to-fit, and keyboard navigation (WASD/Arrows, `+`/`-`, `0` to reset).
+4. **Open/serve** — Open the result in your default browser, start a local static server, or push the DOT to Graphviz Online.
+
+## Arguments
+
+<ParamField path="seed" type="string" required>
+  Seed identifier: a plain ID with a known prefix (e.g., `LEADER_AMINA`, `CIVILIZATION_ROME`) or a `Table:ID` form.
+</ParamField>
+
+<ParamField path="outDir" type="string">
+  Directory where output files are written. Defaults to `out/<seed>` relative to the workspace root.
+</ParamField>
+
+## Flags
+
+### Source and config
+
+<ParamField query="--config" type="string">
+  Path to a `civ.config.jsonc` file.
+</ParamField>
+
+<ParamField query="--profile" type="string" default="default">
+  Profile key to use from the config file.
+</ParamField>
+
+<ParamField query="--root" type="string">
+  Override the XML root directory, bypassing config discovery.
+</ParamField>
+
+### Rendering
+
+<ParamField query="--engine" type="string" default="dot">
+  Graphviz layout engine. Accepted values: `dot`, `neato`, `fdp`, `sfdp`, `circo`, `twopi`.
+</ParamField>
+
+### Viewer and browser
+
+<ParamField query="--vizHtml / --viz.html" type="boolean" default="true">
+  Emit a `graph.html` file that embeds the SVG and adds an interactive pan/zoom viewer. Also accepted as `--viz.html`.
+</ParamField>
+
+<ParamField query="--open" type="boolean" default="true">
+  Open the generated visualisation in your default browser once rendering completes. Automatically suppressed in CI environments and non-TTY contexts.
+</ParamField>
+
+<ParamField query="--serve" type="boolean" default="false">
+  Start a local static HTTP server rooted at `outDir` and open `http://localhost:<port>/graph.html`. Blocks until you press Ctrl+C. Takes precedence over `--open`.
+</ParamField>
+
+<ParamField query="--port" type="integer" default="3000">
+  Port for `--serve`. If the port is already in use, the server falls back to an ephemeral port automatically.
+</ParamField>
+
+<ParamField query="--openOnline" type="boolean" default="false">
+  Encode the DOT source into a URL and open [Graphviz Online](https://dreampuf.github.io/GraphvizOnline/). Guarded by `--maxUrlLength` — large graphs will be skipped with a warning.
+</ParamField>
+
+<ParamField query="--maxUrlLength" type="integer" default="8000">
+  Maximum URL length allowed when using `--openOnline`. Increase this if your graph is large and you still want to open it online.
+</ParamField>
+
+## Output files
+
+All files are written to `outDir` (default: `out/<seed>/`).
+
+| File | Description |
+|---|---|
+| `graph.json` | Graph model (nodes and edges) |
+| `graph.dot` | Graphviz DOT source |
+| `graph.svg` | Rendered SVG |
+| `graph.html` | Interactive HTML viewer (when `--vizHtml` is enabled) |
+| `manifest.txt` | Absolute paths of all XML files touched by the crawl |
+
+## Examples
+
+Run the full pipeline and open the HTML viewer:
+
+```bash
+civ7 data explore LEADER_AMINA
+```
+
+Serve the output directory and keep the server running:
+
+```bash
+civ7 data explore CIVILIZATION_ROME --serve
+```
+
+Serve on a custom port:
+
+```bash
+civ7 data explore CIVILIZATION_ROME --serve --port 8080
+```
+
+Open Graphviz Online instead of a local viewer:
+
+```bash
+civ7 data explore LEADER_AMANITORE --openOnline
+```
+
+Render with the `fdp` engine (better for large, highly-connected graphs):
+
+```bash
+civ7 data explore CIVILIZATION_ROME --engine fdp
+```
+
+Skip the HTML viewer and only produce SVG:
+
+```bash
+civ7 data explore LEADER_AMINA --no-vizHtml
+```
+
+## Troubleshooting
+
+<Warning>
+  If `--openOnline` is silently skipped, the encoded DOT URL exceeded `--maxUrlLength`. Either increase `--maxUrlLength` or use `--serve` for local viewing instead.
+</Warning>
+
+<Note>
+  `--open` is automatically disabled in CI environments (`CI=true`) and when stdout is not a TTY. Use `--serve` for a persistent local server.
+</Note>

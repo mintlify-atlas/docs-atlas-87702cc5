@@ -1,0 +1,70 @@
+---
+title: "Introduction"
+description: "A TypeScript SDK and CLI for building Civilization VII mods programmatically — type-safe, structured, and version-controlled."
+---
+
+Civ7 Modding Tools is a monorepo workspace that replaces manual XML editing with a programmatic approach to Civilization VII modding. You write TypeScript, and the SDK generates the XML files, `.modinfo`, and folder structure your mod needs.
+
+The project started as a fork of [izica/civ7-modding-tools](https://github.com/izica/civ7-modding-tools) and has since been extended with a full TypeScript SDK, a command-line tool, plugin libraries, and this documentation site.
+
+## Who this is for
+
+- **Mod developers** who want type-safe, programmatic mod creation instead of editing raw XML
+- **Technical modders** who prefer working in code and benefit from IntelliSense, type checking, and version control
+- **Tool builders** who need reusable libraries for Civ7 data manipulation and graph analysis
+
+## Key components
+
+<CardGroup cols={2}>
+  <Card title="TypeScript SDK" icon="code" href="/sdk/overview">
+    Strongly-typed builders for units, civilizations, constructibles, progression trees, modifiers, and more. Call `mod.build()` to generate all XML and `.modinfo` output.
+  </Card>
+  <Card title="CLI" icon="terminal" href="/cli/overview">
+    The `civ7` command manages game resources — zip and unzip archives from your Civ7 installation, crawl XML dependencies, and render graph visualizations.
+  </Card>
+  <Card title="Plugin libraries" icon="puzzle-piece" href="/sdk/core-concepts">
+    Reusable `plugin-files`, `plugin-graph`, `plugin-git`, and `plugin-mods` packages. The CLI consumes these internally; you can use them independently too.
+  </Card>
+  <Card title="Guides" icon="book" href="/guides/official/getting-started">
+    Ported official Firaxis modding docs, community guides, and TypeScript how-to articles covering common modding tasks end-to-end.
+  </Card>
+</CardGroup>
+
+## How it fits together
+
+The workspace is organized as a monorepo:
+
+```
+civ7-modding-tools/
+├── packages/
+│   ├── sdk/              # @mateicanavra/civ7-sdk — TypeScript mod builders
+│   ├── cli/              # @mateicanavra/civ7-cli — the `civ7` command
+│   ├── config/           # Shared config and path resolution
+│   └── plugins/
+│       ├── plugin-files/ # Zip/unzip logic
+│       └── plugin-graph/ # XML graph crawl and render
+├── apps/
+│   ├── docs/             # This documentation site
+│   └── playground/       # Example mods and experiments
+├── mods/                 # Colocated mod workspaces
+└── civ.config.jsonc      # CLI configuration
+```
+
+You install the SDK in your mod project and use the CLI from the repo root to manage game data. The two tools are independent — you can use the SDK without the CLI, and vice versa.
+
+## Get started
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Install the SDK and CLI, pull game data, and build your first mod in under 10 minutes.
+  </Card>
+  <Card title="Installation" icon="download" href="/setup/installation">
+    Detailed setup instructions including prerequisites, dependency installation, and CLI linking.
+  </Card>
+  <Card title="Configuration" icon="sliders" href="/setup/configuration">
+    Understand `civ.config.jsonc` — inputs, outputs, and profiles for the CLI.
+  </Card>
+  <Card title="Game data" icon="database" href="/setup/game-data">
+    Pull game resources from your local Civ7 installation to enable the CLI and docs.
+  </Card>
+</CardGroup>

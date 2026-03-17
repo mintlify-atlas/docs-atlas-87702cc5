@@ -1,0 +1,119 @@
+---
+title: "ModifierBuilder"
+description: "Create reusable game modifiers with effects, collections, requirements, and arguments."
+---
+
+`ModifierBuilder` wraps a `ModifierNode` in a builder interface. Modifiers are rarely used alone — instead, you create them and then `bind()` them to a `CivilizationBuilder`, `TraditionBuilder`, `UniqueQuarterBuilder`, or `ProgressionTreeNodeBuilder`.
+
+## Basic usage
+
+```typescript
+import {
+    ModifierBuilder,
+    CivilizationBuilder,
+    COLLECTION,
+    EFFECT,
+    REQUIREMENT,
+    ACTION_GROUP_BUNDLE,
+} from '@mateicanavra/civ7-sdk';
+
+const modifier = new ModifierBuilder({
+    modifier: {
+        collection: COLLECTION.OWNER,
+        effect: EFFECT.CITY_ADJUST_YIELD,
+        permanent: true,
+        requirements: [{
+            type: REQUIREMENT.PLAYER_HAS_CIVILIZATION_TRAIT,
+        }],
+        arguments: [
+            { name: 'YieldType', value: 'YIELD_GOLD' },
+            { name: 'Amount', value: 5 },
+        ],
+    },
+    localizations: [{
+        description: '+5 Gold in all cities',
+    }],
+});
+
+const civilization = new CivilizationBuilder({ /* ... */ });
+civilization.bind([modifier]);
+```
+
+## Constructor options
+
+<ParamField path="modifier" type="Partial<TModifierNode>">
+  The modifier definition.
+
+  | Field | Type | Description |
+  |---|---|---|
+  | `id` | `string` | Auto-generated UUID-based ID. Override to set a stable ID. |
+  | `collection` | `COLLECTION` | Which entities the modifier applies to |
+  | `effect` | `EFFECT` | The game effect to apply |
+  | `permanent` | `boolean \| null` | Whether the modifier persists permanently |
+  | `runOnce` | `boolean \| null` | Whether the modifier fires only once |
+  | `arguments` | `TArgumentNode[]` | Named arguments passed to the effect |
+  | `requirements` | `TPartialRequired<TModifierRequirementNode, 'type'>[]` | Subject requirements that gate the modifier |
+  | `strings` | `TStringNode[]` | Localization string references |
+</ParamField>
+
+<ParamField path="isDetached" type="boolean">
+  When `true`, the modifier is added to the `game-effects.xml` file but the `TraitModifier` / `TraditionModifier` / `UniqueQuarterModifier` linking row is **not** created. Use this when you want to control the link manually.
+
+  Defaults to `false`.
+</ParamField>
+
+<ParamField path="localizations" type="Partial<TModifierLocalization>[]">
+  Display text for the modifier. Keys become localization tag suffixes.
+
+  | Field | Type | Description |
+  |---|---|---|
+  | `description` | `string` | Displayed modifier description |
+</ParamField>
+
+## Effect arguments
+
+Most effects accept named `arguments`. Refer to the game database schema for the required arguments per effect. Common patterns:
+
+```typescript
+// Yield adjustment
+arguments: [
+    { name: 'YieldType', value: 'YIELD_SCIENCE' },
+    { name: 'Amount', value: 3 },
+]
+
+// Constructible yield by tag
+arguments: [
+    { name: 'Tag', value: 'FOOD' },
+    { name: 'YieldType', value: 'YIELD_FOOD' },
+    { name: 'Amount', value: 10 },
+]
+```
+
+## Requirements
+
+Requirements gate when the modifier activates. Each requirement entry maps to a `<SubjectRequirements>` element in the game XML.
+
+```typescript
+import { REQUIREMENT } from '@mateicanavra/civ7-sdk';
+
+requirements: [
+    {
+        type: REQUIREMENT.CITY_HAS_UNIQUE_QUARTER,
+        arguments: [{ name: 'UniqueQuarterType', value: 'QUARTER_GONDOR' }],
+    },
+    { type: REQUIREMENT.CITY_IS_CITY },
+]
+```
+
+## How `ModifierBuilder` interacts with parent builders
+
+| Bound to | Result |
+|---|---|
+| `CivilizationBuilder` | Modifier added to `game-effects.xml`; `TraitModifier` row added linking it to the civ's trait ability |
+| `TraditionBuilder` | Modifier added to `game-effects.xml`; `TraditionModifier` row added |
+| `UniqueQuarterBuilder` | Modifier added to `game-effects.xml`; `GameModifier` + `UniqueQuarterModifier` rows added |
+| `ProgressionTreeNodeBuilder` | Modifier added to tree's `game-effects.xml`; `ProgressionTreeNodeUnlock` row added |
+
+<Note>
+`ModifierBuilder.build()` returns an empty array. It never produces output files on its own — it must be bound to a parent builder.
+</Note>

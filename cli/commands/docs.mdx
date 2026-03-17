@@ -1,0 +1,90 @@
+---
+title: 'docs serve'
+description: 'Serve the project documentation site locally with automatic resource syncing.'
+---
+
+`civ7 docs serve` starts the documentation site locally. It supports two engines — [Mintlify](https://mintlify.com/) (`mint`) and [Docsify](https://docsify.js.org/) — and automatically syncs Civilization VII resources from the central outputs directory before starting the server.
+
+```bash
+civ7 docs serve [flags]
+```
+
+## Resource syncing
+
+Before starting the server, `docs serve` attempts to sync game resources into the docs `public/` directory so that documentation pages that reference resource data render correctly:
+
+1. If `.civ7/outputs/archives/civ7-official-resources.zip` exists, it is extracted to the appropriate public directory.
+2. If only the pre-extracted directory `.civ7/outputs/resources` exists, it is copied instead.
+3. If neither is present, a reminder is logged to run `bun run refresh:data` at the repo root.
+
+Pass `--skipSync` to skip this step entirely.
+
+## Flags
+
+<ParamField query="--engine" type="string" default="mint">
+  Documentation engine to use. Accepted values:
+  - `mint` — Mintlify (uses `bunx mint dev` internally)
+  - `docsify` — Docsify (uses `bunx docsify-cli serve` internally)
+</ParamField>
+
+<ParamField query="--port" type="integer" default="4000">
+  Port to serve the documentation on.
+</ParamField>
+
+<ParamField query="--host" type="string" default="127.0.0.1">
+  Host/interface to bind to. Applies to the Docsify engine only; Mintlify manages its own host binding.
+</ParamField>
+
+<ParamField query="--siteDir" type="string">
+  Path to the docs directory to serve.
+  - Default for `mint`: `apps/docs` (relative to workspace root)
+  - Default for `docsify`: `apps/docs/site` (relative to workspace root)
+</ParamField>
+
+<ParamField query="--open" type="boolean" default="true">
+  Open the server URL in your default browser once the server starts. Suppressed in CI environments and non-TTY contexts.
+</ParamField>
+
+<ParamField query="--skipSync" type="boolean" default="false">
+  Skip the resource sync step and start the server immediately.
+</ParamField>
+
+## Examples
+
+Start the Mintlify docs site with default settings:
+
+```bash
+civ7 docs serve
+```
+
+Serve on a custom port:
+
+```bash
+civ7 docs serve --port 4000
+```
+
+Serve with Docsify instead of Mintlify:
+
+```bash
+civ7 docs serve --engine docsify
+```
+
+Point to a custom docs directory:
+
+```bash
+civ7 docs serve --siteDir ./apps/docs --no-open
+```
+
+Skip resource syncing (useful when resources are already in place):
+
+```bash
+civ7 docs serve --skipSync
+```
+
+<Note>
+  The server blocks until you press Ctrl+C. In CI environments, the server process is killed immediately after startup.
+</Note>
+
+<Tip>
+  If the docs site shows missing or stale resource data, run `bun run refresh:data` from the repo root to regenerate `.civ7/outputs/resources`, then restart the server.
+</Tip>

@@ -1,0 +1,337 @@
+---
+title: 'File paths'
+description: 'Reference for Civilization VII file paths: game installation directories, CLI output paths, mod install locations, and civ.config.jsonc configuration.'
+keywords: ['file paths', 'directories', 'installation', 'mod install', 'civ.config.jsonc', 'output paths', 'CLI']
+---
+
+This page lists the key file paths and directory structures you need when working with Civilization VII mods — from the game installation to the CLI output directories.
+
+## Path placeholders
+
+Throughout this documentation, two placeholders represent the main game directories:
+
+| Placeholder | Meaning |
+|---|---|
+| `<GAME_RESOURCES>` | Game installation directory (read-only game files) |
+| `<GAME_DATA>` | User data directory (saves, logs, installed mods) |
+
+## Game installation directory
+
+The game installation directory contains all base game files, modules, schemas, and assets. It is read-only during gameplay.
+
+<Tabs>
+  <Tab title="macOS">
+    ```bash
+    ~/Library/Application Support/Steam/steamapps/common/Sid Meier's Civilization VII/CivilizationVII.app/Contents/Resources
+    ```
+  </Tab>
+  <Tab title="Windows">
+    ```bash
+    C:\Program Files (x86)\Steam\steamapps\common\Sid Meier's Civilization VII\Base\
+    ```
+  </Tab>
+</Tabs>
+
+## Game data directory
+
+The game data directory stores user-specific data including saves, logs, and installed mods. You have write access here.
+
+<Tabs>
+  <Tab title="macOS">
+    ```bash
+    ~/Library/Application Support/Civilization VII/
+    ```
+  </Tab>
+  <Tab title="Windows">
+    ```bash
+    C:\Users\[Username]\Documents\My Games\Sid Meier's Civilization VII\
+    ```
+  </Tab>
+</Tabs>
+
+## Base game directory structure
+
+```text
+<GAME_RESOURCES>/
+├── Base/
+│   ├── modules/
+│   │   ├── base-standard/        # Core gameplay definitions
+│   │   ├── age-antiquity/        # Antiquity Age content
+│   │   ├── age-exploration/      # Exploration Age content
+│   │   ├── age-modern/           # Modern Age content
+│   │   ├── core/                 # Core engine functionality
+│   │   └── telemetry/            # Telemetry systems
+│   └── Assets/
+│       ├── schema/               # Database schema definitions
+│       │   ├── gameplay/         # Core gameplay schemas
+│       │   ├── icons/            # Icon manager schema
+│       │   ├── loc/              # Localization schemas
+│       │   ├── modding/          # Modding framework schemas
+│       │   ├── worldbuilder/     # Map schema
+│       │   └── frontend/         # UI and setup schemas
+│       ├── textures/             # Game textures
+│       ├── models/               # 3D models
+│       └── ui/                   # UI assets
+└── DLC/                          # Official DLC packages
+```
+
+## User data structure
+
+```text
+<GAME_DATA>/
+├── Mods/                         # Installed mods go here
+├── Logs/                         # Game logs
+│   ├── system.log
+│   ├── database.log
+│   ├── error.log
+│   ├── mods.log
+│   └── AI_*.csv
+├── Debug/                        # Debug information
+├── Database/                     # Local database files
+└── DNA/                          # User profile data
+```
+
+## Mod install location
+
+Install mods in the `Mods/` subdirectory of the game data directory.
+
+<Tabs>
+  <Tab title="macOS">
+    ```bash
+    ~/Library/Application Support/Civilization VII/Mods/
+    ```
+  </Tab>
+  <Tab title="Windows">
+    ```bash
+    C:\Users\[Username]\Documents\My Games\Sid Meier's Civilization VII\Mods\
+    ```
+  </Tab>
+</Tabs>
+
+After copying your mod folder here, it appears in the mod selection menu when you start the game.
+
+## Key file locations by category
+
+### Schema files
+
+```text
+<GAME_RESOURCES>/Base/Assets/schema/gameplay/01_GameplaySchema.sql
+<GAME_RESOURCES>/Base/Assets/schema/modding/schema-modding-10.sql
+<GAME_RESOURCES>/Base/Assets/schema/icons/IconManager.sql
+<GAME_RESOURCES>/Base/Assets/schema/loc/schema-loc-10.sql
+<GAME_RESOURCES>/Base/Assets/schema/loc/schema-loc-20-languages.sql
+<GAME_RESOURCES>/Base/Assets/schema/worldbuilder/schema-worldbuilder-map.sql
+<GAME_RESOURCES>/Base/Assets/schema/frontend/schema-frontend-10-setup-parameters.sql
+```
+
+### Definition files (`.civdb`)
+
+```text
+<GAME_RESOURCES>/Base/modules/base-standard/definitions/*.civdb
+```
+
+Key files: `civilization.civdb`, `leader.civdb`, `unit.civdb`, `constructible.civdb`, `modifier-system.civdb`
+
+### Civilization data files
+
+```text
+<GAME_RESOURCES>/Base/modules/base-standard/data/civilizations.xml
+<GAME_RESOURCES>/Base/modules/age-antiquity/data/civilizations.xml
+<GAME_RESOURCES>/Base/modules/age-exploration/data/civilizations.xml
+<GAME_RESOURCES>/Base/modules/age-modern/data/civilizations.xml
+```
+
+### Leader data files
+
+```text
+<GAME_RESOURCES>/Base/modules/base-standard/data/leaders.xml
+<GAME_RESOURCES>/Base/modules/age-antiquity/data/leaders.xml
+<GAME_RESOURCES>/Base/modules/age-exploration/data/leaders.xml
+<GAME_RESOURCES>/Base/modules/age-modern/data/leaders.xml
+```
+
+### Unit data files
+
+```text
+<GAME_RESOURCES>/Base/modules/base-standard/data/units.xml
+<GAME_RESOURCES>/Base/modules/age-antiquity/data/units.xml
+<GAME_RESOURCES>/Base/modules/age-exploration/data/units.xml
+<GAME_RESOURCES>/Base/modules/age-modern/data/units.xml
+```
+
+### Building and improvement files
+
+```text
+<GAME_RESOURCES>/Base/modules/base-standard/data/constructibles.xml
+<GAME_RESOURCES>/Base/modules/age-antiquity/data/constructibles.xml
+<GAME_RESOURCES>/Base/modules/age-exploration/data/constructibles.xml
+<GAME_RESOURCES>/Base/modules/age-modern/data/constructibles.xml
+```
+
+### Tech and civic tree files
+
+```text
+<GAME_RESOURCES>/Base/modules/age-antiquity/data/progression-trees-tech.xml
+<GAME_RESOURCES>/Base/modules/age-antiquity/data/progression-trees-culture.xml
+<GAME_RESOURCES>/Base/modules/age-exploration/data/progression-trees-tech.xml
+<GAME_RESOURCES>/Base/modules/age-exploration/data/progression-trees-culture.xml
+<GAME_RESOURCES>/Base/modules/age-modern/data/progression-trees-tech.xml
+<GAME_RESOURCES>/Base/modules/age-modern/data/progression-trees-culture.xml
+```
+
+## CLI output paths (`.civ7/outputs/`)
+
+When you run the CLI to extract or process game resources, outputs are written under `.civ7/outputs/` relative to your project root.
+
+| Default path | Content | Config key |
+|---|---|---|
+| `.civ7/outputs/archives/civ7-official-resources.zip` | Downloaded game resources archive | `outputs.zip.dir`, `outputs.zip.name` |
+| `.civ7/outputs/resources/` | Extracted game resource files | `outputs.unzip.dir` |
+| `.civ7/outputs/graph/<seed>/` | Dependency graph output | `outputs.graph.dir` |
+
+These defaults are defined in `packages/config/src/index.ts`:
+
+```typescript
+export const DEFAULT_OUTPUT_BASE_DIR = '.civ7/outputs';
+export const DEFAULT_ZIP_DIR = 'archives';
+export const DEFAULT_UNZIP_DIR = 'resources';
+export const DEFAULT_GRAPH_DIR = 'graph';
+export const DEFAULT_ARCHIVE_NAME = 'civ7-official-resources.zip';
+```
+
+## `civ.config.jsonc` paths configuration
+
+The `civ.config.jsonc` file at your project root controls input and output paths for CLI commands. All paths support `~` expansion.
+
+```jsonc
+{
+  // Input: where the game is installed
+  "inputs": {
+    "installDir": "~/Library/Application Support/Steam/steamapps/common/Sid Meier's Civilization VII/..."
+  },
+
+  // Output: where CLI writes extracted resources and archives
+  "outputs": {
+    "baseDir": ".civ7/outputs",
+    "zip": {
+      "dir": "archives",
+      "name": "civ7-official-resources.zip"
+    },
+    "unzip": {
+      "dir": "resources"
+    },
+    "graph": {
+      "dir": "graph"
+    }
+  },
+
+  // Per-profile overrides
+  "profiles": {
+    "full": {
+      "outputs": {
+        "zip": {
+          "name": "civ7-official-resources-full.zip"
+        }
+      }
+    }
+  }
+}
+```
+
+<Tip>
+  Use the `full` profile when you need extracted media directories (icons, `.dds` textures) that are excluded from the default archive. Run with `--profile full`.
+</Tip>
+
+### Path resolution priority
+
+For `installDir`, the CLI resolves in this order:
+
+1. `--install` CLI flag
+2. `inputs.installDir` in `civ.config.jsonc`
+3. `src_path` legacy key in `civ.config.jsonc`
+4. Platform default (`~/Library/...` on macOS, `C:\Program Files...` on Windows)
+
+## Module structure reference
+
+### `base-standard` module
+
+```text
+<GAME_RESOURCES>/Base/modules/base-standard/
+├── base-standard.modinfo     # Module definition
+├── package.json
+├── definitions/              # .civdb schema files
+├── data/                     # Core gameplay XML data
+│   ├── civilizations.xml
+│   ├── leaders.xml
+│   ├── units.xml
+│   ├── constructibles.xml
+│   └── progression-trees.xml
+├── text/                     # Localization files (en_US.xml, etc.)
+├── ui/                       # UI definitions and scripts
+├── scripts/                  # JavaScript game logic
+└── maps/                     # Map scripts
+```
+
+### Age module structure
+
+```text
+<GAME_RESOURCES>/Base/modules/age-[name]/
+├── age-[name].modinfo
+├── config/
+│   └── config.xml            # Age properties and civilizations
+├── data/
+│   ├── civilizations.xml
+│   ├── units.xml
+│   ├── constructibles.xml
+│   └── progression-trees-*.xml
+└── text/
+```
+
+### DLC module structure
+
+```text
+<GAME_RESOURCES>/DLC/[dlc-name]/
+├── [dlc-name].modinfo
+├── data/
+│   ├── civilizations/
+│   ├── leaders/
+│   └── units/
+├── text/
+└── assets/
+    └── icons/
+```
+
+## Recommended mod structure
+
+Follow this layout when creating a mod. It mirrors the DLC structure and is directly compatible with the game's mod loader.
+
+```text
+<GAME_DATA>/Mods/your-mod-name/
+├── your-mod-name.modinfo
+├── civilizations/
+│   └── your_civilization.xml
+├── leaders/
+│   └── your_leader.xml
+├── units/
+│   └── your_units.xml
+├── buildings/
+│   └── your_buildings.xml
+├── traits/
+│   └── your_traits.xml
+├── text/
+│   └── en_US/
+│       └── your_text.xml
+└── assets/
+    └── icons/
+        └── your_icons.xml
+```
+
+## File naming conventions
+
+| Convention | Correct | Incorrect |
+|---|---|---|
+| Use lowercase | `roman_legion.xml` | `RomanLegion.xml` |
+| Separate words with underscores | `my_mod_units.xml` | `my-mod-units.xml` |
+| Prefix with mod ID | `mymod_civilization.xml` | `civilization.xml` |
+| Use `.xml` for data files | `units.xml` | `units.json` |
+| Use `.sql` for direct SQL | `schema_patch.sql` | `schema_patch.txt` |

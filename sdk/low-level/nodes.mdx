@@ -1,0 +1,202 @@
+---
+title: "Nodes"
+description: "Low-level XML node classes — DatabaseNode, UnitNode, TypeNode, ModifierNode, and the rest."
+---
+
+Nodes are the direct representation of game XML rows. Every builder uses nodes internally. You can work with them directly for full control over what ends up in the XML output.
+
+## `BaseNode<T>`
+
+All node classes extend `BaseNode`. The base class provides:
+
+- **`fill(payload)`** — merges a partial payload into the node, skipping unknown keys.
+- **`toXmlElement()`** — serializes the node's non-null, non-empty properties as XML attributes on a `<Row>` element.
+- **`insertOrIgnore()`** — changes the element name from `Row` to `InsertOrIgnore`, which tells the game engine to skip the row if a conflict exists.
+
+```typescript
+import { TypeNode, KIND } from '@mateicanavra/civ7-sdk';
+
+const typeNode = new TypeNode({
+    type: 'UNIT_CUSTOM_SCOUT',
+    kind: KIND.UNIT,
+});
+
+// Insert-or-ignore variant (for legacy / always files)
+const safeTypeNode = new TypeNode({
+    type: 'UNIT_CUSTOM_SCOUT',
+    kind: KIND.UNIT,
+}).insertOrIgnore();
+
+console.log(typeNode.toXmlElement());
+// { _name: 'Row', _attrs: { Type: 'UNIT_CUSTOM_SCOUT', Kind: 'KIND_UNIT' } }
+```
+
+## `DatabaseNode`
+
+`DatabaseNode` is an aggregate container. It holds typed arrays for every entity table and serializes them all into a single `<Database>` XML block.
+
+```typescript
+import {
+    DatabaseNode,
+    UnitNode,
+    TypeNode,
+    UnitStatNode,
+    UnitCostNode,
+    TypeTagNode,
+    TagNode,
+    KIND,
+    UNIT_CLASS,
+} from '@mateicanavra/civ7-sdk';
+
+const db = new DatabaseNode({
+    types: [
+        new TypeNode({ type: 'UNIT_CUSTOM_SCOUT', kind: KIND.UNIT }),
+    ],
+    units: [
+        new UnitNode({
+            unitType: 'UNIT_CUSTOM_SCOUT',
+            baseMoves: 2,
+            baseSightRange: 10,
+        }),
+    ],
+    unitStats: [
+        new UnitStatNode({ unitType: 'UNIT_CUSTOM_SCOUT', combat: 20 }),
+    ],
+    unitCosts: [
+        new UnitCostNode({ unitType: 'UNIT_CUSTOM_SCOUT', cost: 100 }),
+    ],
+    tags: [
+        new TagNode({ category: 'UNIT_CLASS', tag: 'UNIT_CLASS_CUSTOM_SCOUT' }),
+    ],
+    typeTags: [
+        new TypeTagNode({ type: 'UNIT_CUSTOM_SCOUT', tag: UNIT_CLASS.RECON }),
+    ],
+});
+
+const xml = db.toXmlElement();
+```
+
+All array properties map to table names in the output XML. The property-to-element name mapping handles exceptions like `unitCosts → Unit_Costs` and `constructibleMaintenances → Constructible_Maintenances`.
+
+### Full property list
+
+| Property | XML element | Node type |
+|---|---|---|
+| `types` | `Types` | `TypeNode` |
+| `kinds` | `Kinds` | `KindNode` |
+| `tags` | `Tags` | `TagNode` |
+| `typeTags` | `TypeTags` | `TypeTagNode` |
+| `traits` | `Traits` | `TraitNode` |
+| `traitModifiers` | `TraitModifiers` | `TraitModifierNode` |
+| `units` | `Units` | `UnitNode` |
+| `unitStats` | `Unit_Stats` | `UnitStatNode` |
+| `unitCosts` | `Unit_Costs` | `UnitCostNode` |
+| `unitReplaces` | `UnitReplaces` | `UnitReplaceNode` |
+| `unitUpgrades` | `UnitUpgrades` | `UnitUpgradeNode` |
+| `unitAdvisories` | `Unit_Advisories` | `UnitAdvisoryNode` |
+| `civilizations` | `Civilizations` | `CivilizationNode` |
+| `civilizationItems` | `CivilizationItems` | `CivilizationItemNode` |
+| `civilizationTraits` | `CivilizationTraits` | `CivilizationTraitNode` |
+| `buildings` | `Buildings` | `BuildingNode` |
+| `improvements` | `Improvements` | `ImprovementNode` |
+| `constructibles` | `Constructibles` | `ConstructibleNode` |
+| `progressionTrees` | `ProgressionTrees` | `ProgressionTreeNode` |
+| `progressionTreeNodes` | `ProgressionTreeNodes` | `ProgressionTreeNodeNode` |
+| `progressionTreeNodeUnlocks` | `ProgressionTreeNodeUnlocks` | `ProgressionTreeNodeUnlockNode` |
+| `traditions` | `Traditions` | `TraditionNode` |
+| `traditionModifiers` | `TraditionModifiers` | `TraditionModifierNode` |
+| `uniqueQuarters` | `UniqueQuarters` | `UniqueQuarterNode` |
+| `englishText` | `EnglishText` | `EnglishTextNode` |
+| `iconDefinitions` | `IconDefinitions` | `IconDefinitionNode` |
+
+## `UnitNode`
+
+```typescript
+export type TUnitNode = {
+    unitType: `UNIT_${string}` | null;
+    baseMoves: number | null;
+    baseSightRange: number | null;
+    name: string | null;
+    coreClass: TObjectValues<typeof CORE_CLASS> | null;
+    domain: TObjectValues<typeof DOMAIN> | null;
+    formationClass: TObjectValues<typeof FORMATION_CLASS> | null;
+    unitMovementClass: TObjectValues<typeof UNIT_MOVEMENT_CLASS> | null;
+    maintenance: number | null;
+    canTrain: boolean | null;
+    canPurchase: boolean | null;
+    tier: number | null;
+    traitType: string | null;
+    // ... and many more optional fields
+};
+```
+
+## `TypeNode`
+
+Every game entity needs a `Types` row. `TypeNode` represents it:
+
+```typescript
+export type TTypeNode = {
+    type: string | null;   // e.g. 'UNIT_CUSTOM_SCOUT'
+    kind: TObjectValues<typeof KIND> | null; // e.g. KIND.UNIT
+};
+```
+
+## `ModifierNode`
+
+Modifiers are defined in `GameEffects` files, not `Database` files. Use `GameEffectNode` to wrap them:
+
+```typescript
+import {
+    GameEffectNode,
+    ModifierNode,
+    COLLECTION,
+    EFFECT,
+} from '@mateicanavra/civ7-sdk';
+
+const gameEffects = new GameEffectNode({
+    modifiers: [
+        new ModifierNode({
+            id: 'MOD_MY_UNIT_BONUS',
+            collection: COLLECTION.OWNER,
+            effect: EFFECT.ADJUST_UNIT_STRENGTH_MODIFIER,
+            arguments: [{ name: 'Amount', value: 5 }],
+        }),
+    ],
+});
+```
+
+## Complete low-level example
+
+```typescript
+import {
+    Mod,
+    DatabaseNode,
+    UnitNode,
+    TypeNode,
+    UnitStatNode,
+    UnitCostNode,
+    XmlFile,
+    KIND,
+    ACTION_GROUP,
+    ACTION_GROUP_ACTION,
+} from '@mateicanavra/civ7-sdk';
+
+const mod = new Mod({ id: 'manual-mod', version: '1.0.0' });
+
+const db = new DatabaseNode({
+    types: [new TypeNode({ type: 'UNIT_CUSTOM_SCOUT', kind: KIND.UNIT })],
+    units: [new UnitNode({ unitType: 'UNIT_CUSTOM_SCOUT', baseMoves: 3, baseSightRange: 3 })],
+    unitStats: [new UnitStatNode({ unitType: 'UNIT_CUSTOM_SCOUT', combat: 15 })],
+    unitCosts: [new UnitCostNode({ unitType: 'UNIT_CUSTOM_SCOUT', cost: 80 })],
+});
+
+const unitFile = new XmlFile({
+    path: '/units/unit-custom-scout/',
+    name: 'current.xml',
+    content: db.toXmlElement(),
+    actionGroups: [ACTION_GROUP.AGE_ANTIQUITY_CURRENT],
+    actionGroupActions: [ACTION_GROUP_ACTION.UPDATE_DATABASE],
+});
+
+mod.addFiles([unitFile]).build('./dist');
+```

@@ -1,0 +1,536 @@
+---
+title: 'Database schemas'
+description: 'Technical reference for Civilization VII database schemas, including table structures for Units, Civilizations, Buildings, and how SDK nodes map to game XML.'
+keywords: ['database', 'schemas', 'sql', 'xml', 'units', 'civilizations', 'buildings', 'constructibles', 'TypeNode', 'DatabaseNode']
+---
+
+Civilization VII stores all game data in a relational database structure defined by schema files. This page documents the key table structures you need to understand when writing mods, and explains how the SDK's `TypeNode` and `DatabaseNode` map to game XML.
+
+## Schema file locations
+
+| Schema | Path |
+|---|---|
+| Core gameplay | `<GAME_RESOURCES>/Base/Assets/schema/gameplay/01_GameplaySchema.sql` |
+| Modding framework | `<GAME_RESOURCES>/Base/Assets/schema/modding/schema-modding-10.sql` |
+| Icon management | `<GAME_RESOURCES>/Base/Assets/schema/icons/IconManager.sql` |
+| Localization | `<GAME_RESOURCES>/Base/Assets/schema/loc/schema-loc-10.sql` |
+| World builder map | `<GAME_RESOURCES>/Base/Assets/schema/worldbuilder/schema-worldbuilder-map.sql` |
+| Frontend / UI | `<GAME_RESOURCES>/Base/Assets/schema/frontend/` (multiple files) |
+| Object definitions | `<GAME_RESOURCES>/Base/modules/base-standard/definitions/*.civdb` |
+
+## Core entity schemas
+
+### Civilizations
+
+```sql
+CREATE TABLE "Civilizations" (
+  "CivilizationType" TEXT NOT NULL,
+  "Name" TEXT NOT NULL,              -- LOC key for display name
+  "Adjective" TEXT NOT NULL,         -- LOC key for adjective form
+  "Description" TEXT,                -- LOC key for description
+  "Icon" TEXT,                       -- Icon ID reference
+  "SortIndex" INTEGER,
+  PRIMARY KEY("CivilizationType")
+);
+
+CREATE TABLE "CivilizationTraits" (
+  "CivilizationType" TEXT NOT NULL,
+  "TraitType" TEXT NOT NULL,
+  PRIMARY KEY("CivilizationType", "TraitType"),
+  FOREIGN KEY("CivilizationType") REFERENCES Civilizations("CivilizationType"),
+  FOREIGN KEY("TraitType") REFERENCES Traits("TraitType")
+);
+
+CREATE TABLE "CivilizationDomains" (
+  "CivilizationType" TEXT NOT NULL,
+  "Domain" TEXT NOT NULL,            -- e.g. 'AntiquityAgeCivilizations'
+  PRIMARY KEY("CivilizationType", "Domain")
+);
+```
+
+**Required fields:** `CivilizationType`, `Name`, `Adjective`
+
+**XML example:**
+
+```xml
+<Civilizations>
+  <Row CivilizationType="CIVILIZATION_DACIA"
+       Name="LOC_CIVILIZATION_DACIA_NAME"
+       Adjective="LOC_CIVILIZATION_DACIA_ADJECTIVE"
+       Description="LOC_CIVILIZATION_DACIA_DESCRIPTION"
+       Icon="ICON_CIVILIZATION_DACIA"/>
+</Civilizations>
+
+<CivilizationTraits>
+  <Row CivilizationType="CIVILIZATION_DACIA"
+       TraitType="TRAIT_CIVILIZATION_DACIA_ABILITY"/>
+</CivilizationTraits>
+
+<CivilizationDomains>
+  <Row CivilizationType="CIVILIZATION_DACIA"
+       Domain="AntiquityAgeCivilizations"/>
+</CivilizationDomains>
+```
+
+### Leaders
+
+```sql
+CREATE TABLE "Leaders" (
+  "LeaderType" TEXT NOT NULL,
+  "Name" TEXT NOT NULL,
+  "IsPlayable" BOOLEAN NOT NULL DEFAULT true,
+  "Icon" TEXT,
+  "SortIndex" INTEGER,
+  PRIMARY KEY("LeaderType")
+);
+
+CREATE TABLE "LeaderTraits" (
+  "LeaderType" TEXT NOT NULL,
+  "TraitType" TEXT NOT NULL,
+  PRIMARY KEY("LeaderType", "TraitType"),
+  FOREIGN KEY("LeaderType") REFERENCES Leaders("LeaderType")
+);
+
+CREATE TABLE "CivilizationLeaders" (
+  "CivilizationType" TEXT NOT NULL,
+  "LeaderType" TEXT NOT NULL,
+  "Legacy" BOOLEAN DEFAULT false,
+  PRIMARY KEY("CivilizationType", "LeaderType")
+);
+
+CREATE TABLE "LeaderCivilizationBias" (
+  "CivilizationDomain" TEXT NOT NULL,
+  "CivilizationType" TEXT NOT NULL,
+  "LeaderDomain" TEXT NOT NULL,
+  "LeaderType" TEXT NOT NULL,
+  "Bias" INTEGER NOT NULL,          -- 1 (low) to 4 (strong historical match)
+  "ReasonType" TEXT,
+  "ChoiceType" TEXT,
+  PRIMARY KEY("CivilizationType", "LeaderType")
+);
+```
+
+**XML example:**
+
+```xml
+<Leaders>
+  <Row LeaderType="LEADER_DECEBALUS"
+       Name="LOC_LEADER_DECEBALUS_NAME"
+       Icon="ICON_LEADER_DECEBALUS"/>
+</Leaders>
+
+<LeaderTraits>
+  <Row LeaderType="LEADER_DECEBALUS"
+       TraitType="TRAIT_LEADER_DECEBALUS_ABILITY"/>
+</LeaderTraits>
+
+<CivilizationLeaders>
+  <Row CivilizationType="CIVILIZATION_DACIA"
+       LeaderType="LEADER_DECEBALUS"/>
+</CivilizationLeaders>
+
+<LeaderCivilizationBias>
+  <Row CivilizationDomain="AntiquityAgeCivilizations"
+       CivilizationType="CIVILIZATION_DACIA"
+       LeaderDomain="StandardLeaders"
+       LeaderType="LEADER_DECEBALUS"
+       Bias="4"
+       ReasonType="LOC_UNLOCK_PLAY_AS_DECEBALUS_DACIA_TOOLTIP"
+       ChoiceType="LOC_CREATE_GAME_HISTORICAL_CHOICE"/>
+</LeaderCivilizationBias>
+```
+
+### Units
+
+Units are defined in the `Units` table with core stats, then extended by supplementary tables.
+
+```sql
+CREATE TABLE "Units" (
+  "UnitType" TEXT NOT NULL,
+  "Name" TEXT NOT NULL,
+  "Description" TEXT,
+  "Domain" TEXT NOT NULL,            -- DOMAIN_LAND, DOMAIN_SEA, DOMAIN_AIR
+  "FormationClass" TEXT,             -- FORMATION_CLASS_LAND_COMBAT, etc.
+  "Cost" INTEGER,                    -- Production cost
+  "Maintenance" INTEGER,             -- Gold per turn upkeep
+  "BaseMoves" INTEGER,
+  "Combat" INTEGER,                  -- Melee combat strength
+  "RangedCombat" INTEGER,
+  "Range" INTEGER,
+  "PrereqTech" TEXT,
+  "PrereqCivic" TEXT,
+  "ReplacesUnitType" TEXT,           -- For unique unit replacements
+  "PromotionClass" TEXT,
+  PRIMARY KEY("UnitType")
+);
+```
+
+**Required fields:** `UnitType`, `Name`, `Domain`
+
+**Optional but commonly used:**
+
+| Field | Purpose |
+|---|---|
+| `ReplacesUnitType` | Makes this a unique replacement for another unit |
+| `Combat` | Melee strength; omit for civilian units |
+| `RangedCombat` + `Range` | Enables ranged attacks |
+| `PrereqTech` | Technology required to train |
+| `PrereqCivic` | Civic required to train |
+| `BaseMoves` | Movement points per turn |
+| `Maintenance` | Gold upkeep per turn |
+
+**Supplementary unit tables:**
+
+| Table | XML element | Purpose |
+|---|---|---|
+| `Unit_Costs` | `<Unit_Costs>` | Override production/purchase costs |
+| `Unit_Stats` | `<Unit_Stats>` | Additional stat entries |
+| `Unit_Abilities` | `<Unit_Abilities>` | Attach abilities to a unit |
+| `UnitAbilities` | `<UnitAbilities>` | Define ability types |
+| `UnitAbilityModifiers` | `<UnitAbilityModifiers>` | Connect abilities to modifiers |
+| `Unit_Advisories` | `<Unit_Advisories>` | Advisor hints for the unit |
+
+**XML example:**
+
+```xml
+<Units>
+  <Row UnitType="UNIT_DACIA_FALX_WARRIOR"
+       Name="LOC_UNIT_DACIA_FALX_WARRIOR_NAME"
+       Description="LOC_UNIT_DACIA_FALX_WARRIOR_DESCRIPTION"
+       Domain="DOMAIN_LAND"
+       FormationClass="FORMATION_CLASS_LAND_COMBAT"
+       Cost="65"
+       Maintenance="1"
+       BaseMoves="2"
+       Combat="36"
+       ReplacesUnitType="UNIT_SWORDSMAN"/>
+</Units>
+
+<CivilizationUniqueUnits>
+  <Row CivilizationType="CIVILIZATION_DACIA"
+       UnitType="UNIT_DACIA_FALX_WARRIOR"/>
+</CivilizationUniqueUnits>
+```
+
+### Buildings and constructibles
+
+All buildings, improvements, and wonders are **constructibles**. The `Constructibles` table defines the shared properties; `Buildings` and `Improvements` extend it.
+
+```sql
+CREATE TABLE "Constructibles" (
+  "ConstructibleType" TEXT NOT NULL,
+  "ConstructibleClass" TEXT NOT NULL,  -- CONSTRUCTIBLE_CLASS_BUILDING, _IMPROVEMENT, _WONDER
+  "Name" TEXT NOT NULL,
+  "Description" TEXT,
+  "Cost" INTEGER NOT NULL,
+  "Population" INTEGER,
+  "Age" TEXT,                          -- AGE_ANTIQUITY, AGE_EXPLORATION, AGE_MODERN
+  "Defense" INTEGER,
+  "DistrictDefense" BOOLEAN,
+  "Repairable" BOOLEAN,
+  "RequiresHomeland" BOOLEAN,
+  "RequiresDistantLands" BOOLEAN,
+  PRIMARY KEY("ConstructibleType")
+);
+
+CREATE TABLE "Buildings" (
+  "BuildingType" TEXT NOT NULL,
+  PRIMARY KEY("BuildingType"),
+  FOREIGN KEY("BuildingType") REFERENCES Constructibles("ConstructibleType")
+);
+
+CREATE TABLE "Improvements" (
+  "ImprovementType" TEXT NOT NULL,
+  PRIMARY KEY("ImprovementType"),
+  FOREIGN KEY("ImprovementType") REFERENCES Constructibles("ConstructibleType")
+);
+```
+
+**Supplementary constructible tables:**
+
+| Table | XML element | Purpose |
+|---|---|---|
+| `Constructible_YieldChanges` | `<Constructible_YieldChanges>` | Yield output per turn |
+| `Constructible_Maintenances` | `<Constructible_Maintenances>` | Gold/resource upkeep |
+| `Constructible_Adjacencies` | `<Constructible_Adjacencies>` | Link adjacency bonus IDs |
+| `Adjacency_YieldChanges` | `<Adjacency_YieldChanges>` | Define adjacency bonus rules |
+| `Constructible_ValidDistricts` | `<Constructible_ValidDistricts>` | Limit placement to district types |
+| `Constructible_ValidBiomes` | `<Constructible_ValidBiomes>` | Limit placement by biome |
+| `Constructible_ValidTerrains` | `<Constructible_ValidTerrains>` | Limit placement by terrain |
+| `Constructible_ValidFeatures` | `<Constructible_ValidFeatures>` | Limit placement by map feature |
+| `Constructible_WarehouseYields` | `<Constructible_WarehouseYields>` | Bonus yields when resource assigned |
+
+**XML example:**
+
+```xml
+<Constructibles>
+  <Row ConstructibleType="BUILDING_DACIA_HILLFORT"
+       ConstructibleClass="CONSTRUCTIBLE_CLASS_BUILDING"
+       Name="LOC_BUILDING_DACIA_HILLFORT_NAME"
+       Cost="120"
+       Population="1"
+       Age="AGE_ANTIQUITY"/>
+</Constructibles>
+
+<Buildings>
+  <Row BuildingType="BUILDING_DACIA_HILLFORT"/>
+</Buildings>
+
+<Constructible_YieldChanges>
+  <Row ConstructibleType="BUILDING_DACIA_HILLFORT"
+       YieldType="YIELD_PRODUCTION"
+       YieldChange="2"/>
+</Constructible_YieldChanges>
+
+<Constructible_Maintenances>
+  <Row ConstructibleType="BUILDING_DACIA_HILLFORT"
+       YieldType="YIELD_GOLD"
+       Maintenance="1"/>
+</Constructible_Maintenances>
+```
+
+### Unique Quarters
+
+A Unique Quarter is formed when two specific buildings occupy the same district tile.
+
+```sql
+CREATE TABLE "UniqueQuarters" (
+  "UniqueQuarterType" TEXT NOT NULL,
+  "Name" TEXT NOT NULL,
+  "Building1" TEXT NOT NULL,
+  "Building2" TEXT NOT NULL,
+  PRIMARY KEY("UniqueQuarterType")
+);
+```
+
+**XML example (following Rome's Forum pattern):**
+
+```xml
+<UniqueQuarters>
+  <Row UniqueQuarterType="QUARTER_DACIA_SANCTUM"
+       Name="LOC_QUARTER_DACIA_SANCTUM_NAME"
+       Building1="BUILDING_DACIA_WOLF_SHRINE"
+       Building2="BUILDING_DACIA_COUNCIL_HALL"/>
+</UniqueQuarters>
+
+<UniqueQuarterModifiers>
+  <Row UniqueQuarterType="QUARTER_DACIA_SANCTUM"
+       ModifierId="MODIFIER_QUARTER_DACIA_SANCTUM_BONUS"/>
+</UniqueQuarterModifiers>
+```
+
+### Traits and modifiers
+
+Traits and modifiers are the backbone of the ability system.
+
+```sql
+CREATE TABLE "Traits" (
+  "TraitType" TEXT NOT NULL,
+  "Name" TEXT NOT NULL,
+  "Description" TEXT,
+  PRIMARY KEY("TraitType")
+);
+
+CREATE TABLE "TraitModifiers" (
+  "TraitType" TEXT NOT NULL,
+  "ModifierId" TEXT NOT NULL,
+  PRIMARY KEY("TraitType", "ModifierId")
+);
+
+CREATE TABLE "Modifiers" (
+  "ModifierId" TEXT NOT NULL,
+  "ModifierType" TEXT NOT NULL,
+  "SubjectRequirementSetId" TEXT,
+  PRIMARY KEY("ModifierId")
+);
+
+CREATE TABLE "ModifierArguments" (
+  "ModifierId" TEXT NOT NULL,
+  "Name" TEXT NOT NULL,
+  "Value" TEXT NOT NULL,
+  PRIMARY KEY("ModifierId", "Name")
+);
+```
+
+### Localization
+
+Every in-game text string is stored in `LocalizedText`.
+
+```sql
+CREATE TABLE "LocalizedText" (
+  "Tag" TEXT NOT NULL,
+  "Language" TEXT NOT NULL,
+  "Text" TEXT NOT NULL,
+  PRIMARY KEY("Tag", "Language")
+);
+```
+
+**XML example:**
+
+```xml
+<GameData>
+  <LocalizedText>
+    <Row Tag="LOC_CIVILIZATION_DACIA_NAME" Language="en_US" Text="Dacia"/>
+    <Row Tag="LOC_CIVILIZATION_DACIA_ADJECTIVE" Language="en_US" Text="Dacian"/>
+    <Row Tag="LOC_CIVILIZATION_DACIA_DESCRIPTION" Language="en_US"
+         Text="A fierce mountain kingdom of ancient Romania."/>
+  </LocalizedText>
+</GameData>
+```
+
+## SDK node mapping
+
+The Civ7 Modding Tools SDK provides TypeScript node classes that serialize directly to game XML. Each node class maps to one or more XML tables.
+
+### `TypeNode`
+
+Every new entity (civilization, unit, building, etc.) must be registered in the `Types` table. `TypeNode` handles this.
+
+```typescript
+import { TypeNode, KIND } from '@civ7/sdk';
+
+new TypeNode({
+  type: 'CIVILIZATION_CUSTOM',
+  kind: KIND.CIVILIZATION,   // 'KIND_CIVILIZATION'
+});
+```
+
+**`KIND` values:**
+
+| Constant | Value |
+|---|---|
+| `KIND.CIVILIZATION` | `KIND_CIVILIZATION` |
+| `KIND.UNIT` | `KIND_UNIT` |
+| `KIND.CONSTRUCTIBLE` | `KIND_CONSTRUCTIBLE` |
+| `KIND.BUILDING` | `KIND_BUILDING` |
+| `KIND.IMPROVEMENT` | `KIND_IMPROVEMENT` |
+| `KIND.QUARTER` | `KIND_QUARTER` |
+| `KIND.TRAIT` | `KIND_TRAIT` |
+| `KIND.MODIFIER` | `KIND_MODIFIER` |
+| `KIND.TRADITION` | `KIND_TRADITION` |
+| `KIND.TREE` | `KIND_TREE` |
+| `KIND.TREE_NODE` | `KIND_TREE_NODE` |
+| `KIND.UNLOCK` | `KIND_UNLOCK` |
+| `KIND.ABILITY` | `KIND_ABILITY` |
+
+### `DatabaseNode`
+
+`DatabaseNode` is the root container that aggregates all node arrays and serializes them into a single `<Database>` XML element. When using builders, the builder populates a `DatabaseNode` internally.
+
+The `DatabaseNode` properties correspond to game XML table names:
+
+| Property | XML table |
+|---|---|
+| `civilizations` | `<Civilizations>` |
+| `civilizationTraits` | `<CivilizationTraits>` |
+| `civilizationTags` | `<CivilizationTags>` |
+| `civilizationUnlocks` | `<CivilizationUnlocks>` |
+| `units` | `<Units>` |
+| `unitCosts` | `<Unit_Costs>` |
+| `unitStats` | `<Unit_Stats>` |
+| `unitAbilities` | `<UnitAbilities>` |
+| `unit_Abilities` | `<Unit_Abilities>` |
+| `constructibles` | `<Constructibles>` |
+| `buildings` | `<Buildings>` |
+| `improvements` | `<Improvements>` |
+| `constructibleYieldChanges` | `<Constructible_YieldChanges>` |
+| `constructibleMaintenances` | `<Constructible_Maintenances>` |
+| `constructibleAdjacencies` | `<Constructible_Adjacencies>` |
+| `adjacencyYieldChanges` | `<Adjacency_YieldChanges>` |
+| `uniqueQuarters` | `<UniqueQuarters>` |
+| `uniqueQuarterModifiers` | `<UniqueQuarterModifiers>` |
+| `traits` | `<Traits>` |
+| `traitModifiers` | `<TraitModifiers>` |
+| `traditions` | `<Traditions>` |
+| `traditionModifiers` | `<TraditionModifiers>` |
+| `progressionTrees` | `<ProgressionTrees>` |
+| `progressionTreeNodes` | `<ProgressionTreeNodes>` |
+| `requirementSets` | `<RequirementSets>` |
+| `requirements` | `<Requirements>` |
+| `requirementArguments` | `<RequirementArguments>` |
+| `englishText` | `<EnglishText>` |
+| `iconDefinitions` | `<IconDefinitions>` |
+| `types` | `<Types>` |
+| `kinds` | `<Kinds>` |
+| `tags` | `<Tags>` |
+
+### Full example with SDK nodes
+
+```typescript
+import {
+  DatabaseNode, TypeNode, KindNode,
+  CivilizationNode, CivilizationTraitNode,
+  TraitNode, TraitModifierNode,
+  EnglishTextNode,
+  KIND, YIELD
+} from '@civ7/sdk';
+
+const db = new DatabaseNode({
+  kinds: [
+    new KindNode({ kind: 'KIND_CIVILIZATION' }),
+  ],
+  types: [
+    new TypeNode({ type: 'CIVILIZATION_CUSTOM', kind: KIND.CIVILIZATION }),
+    new TypeNode({ type: 'TRAIT_CIVILIZATION_CUSTOM_ABILITY', kind: KIND.TRAIT }),
+  ],
+  civilizations: [
+    new CivilizationNode({
+      civilizationType: 'CIVILIZATION_CUSTOM',
+      name: 'LOC_CIVILIZATION_CUSTOM_NAME',
+      adjective: 'LOC_CIVILIZATION_CUSTOM_ADJECTIVE',
+      domain: 'AntiquityAgeCivilizations',
+    }),
+  ],
+  civilizationTraits: [
+    new CivilizationTraitNode({
+      civilizationType: 'CIVILIZATION_CUSTOM',
+      traitType: 'TRAIT_CIVILIZATION_CUSTOM_ABILITY',
+    }),
+  ],
+  traits: [
+    new TraitNode({
+      traitType: 'TRAIT_CIVILIZATION_CUSTOM_ABILITY',
+      name: 'LOC_TRAIT_CIVILIZATION_CUSTOM_ABILITY_NAME',
+    }),
+  ],
+  englishText: [
+    new EnglishTextNode({ tag: 'LOC_CIVILIZATION_CUSTOM_NAME', text: 'My Civilization' }),
+  ],
+});
+
+// Serialize to XML
+const xml = db.toXmlElement();
+```
+
+## Schema relationships
+
+The diagram below summarizes the key table relationships for a complete civilization mod:
+
+```text
+Civilizations
+  └─ CivilizationTraits ──────────────────── Traits
+  └─ CivilizationDomains                       └─ TraitModifiers ── Modifiers
+  └─ CivilizationLeaders ─────────────────── Leaders                  └─ ModifierArguments
+  └─ CivilizationUniqueUnits ─────────────── Units
+  └─ CivilizationUnlocks                       └─ Unit_Abilities ── UnitAbilities
+                                                 └─ UnitAbilityModifiers
+Constructibles
+  └─ Buildings / Improvements
+  └─ Constructible_YieldChanges
+  └─ Constructible_Adjacencies ──────────── Adjacency_YieldChanges
+  └─ Constructible_Maintenances
+
+All entities ─────────────────────────────── Types (must be registered)
+```
+
+<Note>
+  Every new entity type (civilization, unit, building, trait, etc.) must have a corresponding row in both `Kinds` and `Types`. Missing these registrations causes the entity to be silently ignored by the game.
+</Note>
+
+## Schema versioning
+
+The game schema evolves with patches and DLC. When working with schemas:
+
+1. Always read schema files from your extracted game installation, not cached copies
+2. Test after game updates — column additions may require mod updates
+3. Use `civ7-official-resources` (the git submodule at `.civ7/outputs/resources`) as your canonical schema reference

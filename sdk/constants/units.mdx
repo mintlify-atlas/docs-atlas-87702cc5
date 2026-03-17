@@ -1,0 +1,169 @@
+---
+title: "Unit constants"
+description: "UNIT and UNIT_CLASS constants — existing unit types for replacing/remapping, and class tags for abilities and promotions."
+---
+
+## `UNIT`
+
+The `UNIT` constant provides typed references to existing base game unit types. Use these values in `unitReplace` and `visualRemap` options.
+
+```typescript
+import { UNIT } from '@mateicanavra/civ7-sdk';
+```
+
+| Key | Value | Description |
+|---|---|---|
+| `UNIT.SCOUT` | `'UNIT_SCOUT'` | Standard recon scout |
+| `UNIT.ARCHER` | `'UNIT_ARCHER'` | Standard ranged unit |
+| `UNIT.SETTLER` | `'UNIT_SETTLER'` | Founds cities |
+| `UNIT.ARMY_COMMANDER` | `'UNIT_ARMY_COMMANDER'` | Army commander (visuals often borrowed for custom units) |
+
+### Usage
+
+```typescript
+import { UnitBuilder, ACTION_GROUP_BUNDLE, UNIT } from '@mateicanavra/civ7-sdk';
+
+const unit = new UnitBuilder({
+    actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+    unit: { unitType: 'UNIT_GONDOR_KNIGHT' },
+
+    // Replace the standard Scout for civilizations that have this unit
+    unitReplace: { replacesUnitType: UNIT.SCOUT },
+
+    // Borrow the Army Commander's visual appearance
+    visualRemap: { to: UNIT.ARMY_COMMANDER },
+});
+```
+
+## `UNIT_CLASS`
+
+`UNIT_CLASS` constants are type tags. Assigning them via `typeTags` controls which abilities, promotions, and game logic apply to the unit. The builder automatically creates the matching `Tags` and `TypeTags` rows.
+
+```typescript
+import { UNIT_CLASS } from '@mateicanavra/civ7-sdk';
+```
+
+| Key | Value | Unit type |
+|---|---|---|
+| `UNIT_CLASS.RECON` | `'UNIT_CLASS_RECON'` | Recon / scout units |
+| `UNIT_CLASS.RECON_ABILITIES` | `'UNIT_CLASS_RECON_ABILITIES'` | Enables recon-specific abilities |
+| `UNIT_CLASS.INFANTRY` | `'UNIT_CLASS_INFANTRY'` | Ground infantry |
+| `UNIT_CLASS.RANGED` | `'UNIT_CLASS_RANGED'` | Ranged units |
+| `UNIT_CLASS.COMBAT` | `'UNIT_CLASS_COMBAT'` | General combat tag |
+| `UNIT_CLASS.CAVALRY` | `'UNIT_CLASS_CAVALRY'` | Cavalry units |
+| `UNIT_CLASS.MOUNTED` | `'UNIT_CLASS_MOUNTED'` | All mounted units |
+| `UNIT_CLASS.ELITE_CAVALRY` | `'UNIT_CLASS_ELITE_CAVALRY'` | Elite cavalry |
+| `UNIT_CLASS.SIEGE` | `'UNIT_CLASS_ARMY_SIEGE'` | Siege equipment |
+| `UNIT_CLASS.NAVAL` | `'UNIT_CLASS_ARMY_NAVAL'` | Naval vessels |
+| `UNIT_CLASS.MARINE` | `'UNIT_CLASS_ARMY_MARINE'` | Amphibious units |
+| `UNIT_CLASS.AIRCRAFT` | `'UNIT_CLASS_AIRCRAFT'` | Air units |
+| `UNIT_CLASS.AIR_FIGHTER` | `'UNIT_CLASS_ARMY_AIR_FIGHTER'` | Fighter aircraft |
+| `UNIT_CLASS.COMMAND` | `'UNIT_CLASS_COMMAND'` | Command units |
+| `UNIT_CLASS.ARMY_COMMANDER` | `'UNIT_CLASS_ARMY_COMMANDER'` | Army commander class |
+| `UNIT_CLASS.PROSPECTOR` | `'UNIT_CLASS_PROSPECTOR'` | Resource prospector |
+| `UNIT_CLASS.INFLUENCE_INDEPENDENT` | `'UNIT_CLASS_INFLUENCE_INDEPENDENT'` | Independent influence units |
+
+### Usage
+
+```typescript
+import { UnitBuilder, ACTION_GROUP_BUNDLE, UNIT_CLASS } from '@mateicanavra/civ7-sdk';
+
+const unit = new UnitBuilder({
+    actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+    unit: {
+        unitType: 'UNIT_GONDOR_RANGER',
+        baseMoves: 3,
+        baseSightRange: 3,
+    },
+    // This unit gets recon abilities and mounted movement bonuses
+    typeTags: [
+        UNIT_CLASS.RECON,
+        UNIT_CLASS.RECON_ABILITIES,
+        UNIT_CLASS.MOUNTED,
+    ],
+    unitStat: { combat: 30 },
+    unitCost: { cost: 150 },
+});
+```
+
+## `KIND`
+
+Use `KIND` constants when working with the low-level API to register types correctly:
+
+```typescript
+import { KIND } from '@mateicanavra/civ7-sdk';
+
+KIND.UNIT           // 'KIND_UNIT'
+KIND.CIVILIZATION   // 'KIND_CIVILIZATION'
+KIND.TRAIT          // 'KIND_TRAIT'
+KIND.CONSTRUCTIBLE  // 'KIND_CONSTRUCTIBLE'
+KIND.QUARTER        // 'KIND_QUARTER'
+KIND.TRADITION      // 'KIND_TRADITION'
+KIND.TREE           // 'KIND_TREE'
+KIND.TREE_NODE      // 'KIND_TREE_NODE'
+KIND.MODIFIER       // 'KIND_MODIFIER'
+KIND.UNLOCK         // 'KIND_UNLOCK'
+KIND.ABILITY        // 'KIND_ABILITY'
+```
+
+## `AGE`
+
+```typescript
+import { AGE } from '@mateicanavra/civ7-sdk';
+
+AGE.ANTIQUITY    // 'AGE_ANTIQUITY'
+AGE.EXPLORATION  // 'AGE_EXPLORATION'
+AGE.MODERN       // 'AGE_MODERN'
+```
+
+Used in `progressionTree.ageType`, `leaderUnlock.ageType`, `civilizationLegacy.age`, and `ACTION_GROUP_BUNDLE` keys.
+
+## `UNIT_MOVEMENT_CLASS`
+
+Controls how the unit moves across terrain:
+
+```typescript
+import { UNIT_MOVEMENT_CLASS } from '@mateicanavra/civ7-sdk';
+
+// Use in UnitNode.unitMovementClass
+UNIT_MOVEMENT_CLASS.FOOT
+UNIT_MOVEMENT_CLASS.WHEELED
+UNIT_MOVEMENT_CLASS.MOUNTED
+// ... other movement classes
+```
+
+## `FORMATION_CLASS`
+
+Determines the unit's formation slot:
+
+```typescript
+import { FORMATION_CLASS } from '@mateicanavra/civ7-sdk';
+
+FORMATION_CLASS.LAND_COMBAT
+FORMATION_CLASS.NAVAL
+// ... other formation classes
+```
+
+## `DOMAIN`
+
+Controls the movement domain:
+
+```typescript
+import { DOMAIN } from '@mateicanavra/civ7-sdk';
+
+DOMAIN.LAND   // land movement
+DOMAIN.SEA    // naval movement
+DOMAIN.AIR    // air movement
+```
+
+## `CORE_CLASS`
+
+The broad category of the unit:
+
+```typescript
+import { CORE_CLASS } from '@mateicanavra/civ7-sdk';
+
+CORE_CLASS.MILITARY
+CORE_CLASS.CIVILIAN
+// ... other core classes
+```

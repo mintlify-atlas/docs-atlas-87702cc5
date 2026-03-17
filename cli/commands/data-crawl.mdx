@@ -1,0 +1,96 @@
+---
+title: 'data crawl'
+description: 'Crawl Civilization VII XML resources from a seed entity and produce a dependency graph and file manifest.'
+---
+
+`civ7 data crawl` builds an in-memory index of Civ-style XML, then performs a breadth-first crawl starting from a seed entity. It outputs a graph in JSON and DOT format plus a `manifest.txt` listing every source file touched by the traversal.
+
+```bash
+civ7 data crawl <seed> [outDir]
+```
+
+## How it works
+
+The crawl proceeds in three phases:
+
+1. **Index** — All XML files under the configured root directory are parsed and normalised into logical tables (e.g., `Modifiers`, `RequirementSets`, `Traits`).
+2. **BFS crawl** — Starting from the parsed seed, the crawler follows edges (e.g., `LeaderTraits`, `TraitModifiers`, `Argument`) in breadth-first order, pruning dangling links and self-loops.
+3. **Output** — The resulting graph is serialised to `graph.json`, `graph.dot`, and `manifest.txt` inside the output directory.
+
+## Arguments
+
+<ParamField path="seed" type="string" required>
+  Seed identifier to start the crawl from. Accepts either:
+  - A plain ID with a known prefix, e.g., `LEADER_AMANITORE`, `CIVILIZATION_ROME`, `TRAIT_LEADER_AMANITORE`
+  - A fully-qualified `Table:ID` form, e.g., `Traits:TRAIT_SOME_TRAIT`
+</ParamField>
+
+<ParamField path="outDir" type="string">
+  Directory where output files are written. Defaults to `out/<seed>` relative to the workspace root.
+</ParamField>
+
+## Flags
+
+<ParamField query="--config" type="string">
+  Path to a `civ.config.jsonc` file. When omitted, the CLI walks up the directory tree to find the nearest workspace root and loads the config from there.
+</ParamField>
+
+<ParamField query="--profile" type="string" default="default">
+  Profile key to use from the config file. Profiles control which XML root directory is used for the crawl.
+</ParamField>
+
+<ParamField query="--root" type="string">
+  Override the XML root directory directly, bypassing config discovery. Use this when the config file does not define `outputs.unzip.dir` or when you want to point at a custom directory.
+</ParamField>
+
+## Output files
+
+All files are written to `outDir` (default: `out/<seed>/`).
+
+| File | Description |
+|---|---|
+| `graph.json` | Graph model with nodes and edges; consumable by downstream tools |
+| `graph.dot` | Graphviz DOT representation with labels, tooltips, and hyperlinks |
+| `manifest.txt` | Newline-separated list of absolute file paths for every XML file the crawl touched |
+
+## Examples
+
+Crawl a leader by ID (uses profile `default` and config auto-discovery):
+
+```bash
+civ7 data crawl LEADER_AMANITORE
+```
+
+Crawl using the fully-qualified `Table:ID` form:
+
+```bash
+civ7 data crawl Traits:TRAIT_LEADER_AMANITORE
+```
+
+Crawl and write output to a custom directory:
+
+```bash
+civ7 data crawl LEADER_AMANITORE ./out/amanitore
+```
+
+Crawl with an explicit profile and config path:
+
+```bash
+civ7 data crawl CIVILIZATION_ROME --profile default --config ./civ.config.jsonc
+```
+
+Override the XML root directory directly:
+
+```bash
+civ7 data crawl LEADER_AMANITORE --root /path/to/resources
+```
+
+## Troubleshooting
+
+<Warning>
+  If you see `Could not determine XML root directory`, either provide `--root` or define `outputs.unzip.dir` in your `civ.config.jsonc`. See the [configuration reference](/cli/configuration) for details.
+</Warning>
+
+<Tip>
+  Use [`civ7 data explore`](/cli/commands/data-explore) to run the full crawl → render → open pipeline in one command.
+</Tip>

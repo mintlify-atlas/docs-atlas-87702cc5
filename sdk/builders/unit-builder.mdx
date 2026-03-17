@@ -1,0 +1,193 @@
+---
+title: "UnitBuilder"
+description: "Create custom units with stats, costs, class tags, visual remaps, and localizations."
+---
+
+`UnitBuilder` generates all XML required for a custom unit: the `Units` row, `Unit_Stats`, `Unit_Costs`, `TypeTags`, `UnitReplaces`, `UnitUpgrades`, `VisualRemaps`, icon definitions, and localization.
+
+## Basic usage
+
+```typescript
+import { Mod, UnitBuilder, ACTION_GROUP_BUNDLE, UNIT_CLASS, UNIT } from '@mateicanavra/civ7-sdk';
+
+const mod = new Mod({ id: 'my-mod', version: '1.0.0' });
+
+const unit = new UnitBuilder({
+    actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+    typeTags: [UNIT_CLASS.RECON, UNIT_CLASS.RECON_ABILITIES],
+    unit: {
+        unitType: 'UNIT_CUSTOM_SCOUT',
+        baseMoves: 2,
+        baseSightRange: 10,
+    },
+    unitCost: { cost: 20 },
+    unitStat: { combat: 0 },
+    unitReplace: { replacesUnitType: UNIT.SCOUT },
+    visualRemap: { to: UNIT.ARMY_COMMANDER },
+    localizations: [
+        { name: 'Custom Scout', description: 'An enhanced recon unit' },
+    ],
+});
+
+mod.add([unit]).build('./dist');
+```
+
+## Constructor options
+
+<ParamField path="actionGroupBundle" type="ActionGroupBundle" required>
+  Determines when this unit's files are loaded. Use `ACTION_GROUP_BUNDLE.AGE_ANTIQUITY`, `AGE_EXPLORATION`, or `AGE_MODERN`.
+</ParamField>
+
+<ParamField path="unit" type="TPartialRequired<TUnitNode, 'unitType'>" required>
+  Core unit data. `unitType` is required. All other fields are optional and default to the game's standard values.
+
+  | Field | Type | Description |
+  |---|---|---|
+  | `unitType` | `string` | Must start with `UNIT_`. Example: `'UNIT_CUSTOM_SCOUT'` |
+  | `baseMoves` | `number` | Movement points per turn |
+  | `baseSightRange` | `number` | Sight radius in tiles |
+  | `coreClass` | `CORE_CLASS` | Unit core class (default: `MILITARY`) |
+  | `domain` | `DOMAIN` | Movement domain (default: `LAND`) |
+  | `formationClass` | `FORMATION_CLASS` | Formation slot (default: `LAND_COMBAT`) |
+  | `unitMovementClass` | `UNIT_MOVEMENT_CLASS` | Movement type (default: `FOOT`) |
+  | `maintenance` | `number` | Per-turn gold upkeep |
+  | `canTrain` | `boolean` | Whether cities can produce this unit |
+  | `canPurchase` | `boolean` | Whether this unit can be purchased |
+  | `tier` | `number` | Era tier for upgrade paths |
+  | `traitType` | `string` | Restrict this unit to a civilization trait |
+  | `promotionClass` | `string` | Promotion tree identifier |
+</ParamField>
+
+<ParamField path="unitStat" type="Partial<TUnitStatNode>">
+  Combat statistics for the unit.
+
+  | Field | Type | Description |
+  |---|---|---|
+  | `combat` | `number` | Base combat strength |
+  | `rangedCombat` | `number` | Ranged combat strength |
+  | `range` | `number` | Attack range in tiles |
+  | `bombardCombat` | `number` | Bombard strength |
+</ParamField>
+
+<ParamField path="unitCost" type="Partial<TUnitCostNode>">
+  Production cost for the unit.
+
+  | Field | Type | Description |
+  |---|---|---|
+  | `cost` | `number` | Base production cost |
+</ParamField>
+
+<ParamField path="typeTags" type="TObjectValues<typeof UNIT_CLASS>[]">
+  Class tags applied to this unit. These control which abilities, promotions, and game logic apply. Use `UNIT_CLASS` constants.
+
+  ```typescript
+  import { UNIT_CLASS } from '@mateicanavra/civ7-sdk';
+
+  typeTags: [UNIT_CLASS.RECON, UNIT_CLASS.RECON_ABILITIES]
+  ```
+</ParamField>
+
+<ParamField path="unitReplace" type="TPartialRequired<TUnitReplaceNode, 'replacesUnitType'> | null">
+  Makes this unit replace another unit for a specific civilization.
+
+  | Field | Type | Description |
+  |---|---|---|
+  | `replacesUnitType` | `string` | The base unit type this unit replaces |
+
+  ```typescript
+  unitReplace: { replacesUnitType: UNIT.SCOUT }
+  ```
+</ParamField>
+
+<ParamField path="unitUpgrade" type="TPartialRequired<TUnitUpgradeNode, 'upgradeUnit'> | null">
+  Defines what unit this unit upgrades into.
+
+  | Field | Type | Description |
+  |---|---|---|
+  | `upgradeUnit` | `string` | The `unitType` to upgrade into |
+</ParamField>
+
+<ParamField path="visualRemap" type="TPartialRequired<TVisualRemapNode, 'to'> | null">
+  Remaps this unit's appearance to use the visuals of an existing unit.
+
+  | Field | Type | Description |
+  |---|---|---|
+  | `to` | `string` | The `unitType` whose visuals to borrow |
+
+  ```typescript
+  visualRemap: { to: UNIT.ARMY_COMMANDER }
+  ```
+</ParamField>
+
+<ParamField path="unitAdvisories" type="TPartialRequired<TUnitAdvisoryNode, 'advisoryClassType'>[]">
+  Advisory class hints for the AI. Each entry specifies an `advisoryClassType` string.
+</ParamField>
+
+<ParamField path="icon" type="TPartialRequired<TIconDefinitionNode, 'path'>">
+  Icon definition for this unit. Defaults to `fs://game/civ_sym_han`.
+
+  | Field | Type | Description |
+  |---|---|---|
+  | `path` | `string` | Game-relative icon path, e.g. `fs://game/my-mod/scout.png` |
+</ParamField>
+
+<ParamField path="localizations" type="TUnitLocalization[]">
+  Display text for this unit. Each entry maps to `<Row>` nodes in the game's `EnglishText` table.
+
+  | Field | Type | Description |
+  |---|---|---|
+  | `language` | `string` | Language tag (default: `en_US`) |
+  | `name` | `string` | Displayed unit name |
+  | `description` | `string` | Displayed description |
+</ParamField>
+
+## Output files
+
+The builder writes these files under `/units/<kebab-unit-type>/`:
+
+| File | Action group | Action |
+|---|---|---|
+| `current.xml` | `bundle.current` | `UpdateDatabase` |
+| `visual-remap.xml` | `bundle.current` | `UpdateVisualRemaps` |
+| `localization.xml` | `bundle.shell`, `bundle.always` | `UpdateText` |
+| `icons.xml` | `bundle.shell`, `bundle.current` | `UpdateIcons` |
+
+## Available constants
+
+Use these typed constants with `UnitBuilder`:
+
+```typescript
+import { UNIT, UNIT_CLASS, ACTION_GROUP_BUNDLE } from '@mateicanavra/civ7-sdk';
+
+// UNIT — existing unit types to replace or remap
+UNIT.SCOUT            // 'UNIT_SCOUT'
+UNIT.ARCHER           // 'UNIT_ARCHER'
+UNIT.ARMY_COMMANDER   // 'UNIT_ARMY_COMMANDER'
+
+// UNIT_CLASS — type tags for ability/promotion rules
+UNIT_CLASS.RECON             // 'UNIT_CLASS_RECON'
+UNIT_CLASS.INFANTRY          // 'UNIT_CLASS_INFANTRY'
+UNIT_CLASS.RANGED            // 'UNIT_CLASS_RANGED'
+UNIT_CLASS.CAVALRY           // 'UNIT_CLASS_CAVALRY'
+UNIT_CLASS.MOUNTED           // 'UNIT_CLASS_MOUNTED'
+UNIT_CLASS.SIEGE             // 'UNIT_CLASS_ARMY_SIEGE'
+UNIT_CLASS.NAVAL             // 'UNIT_CLASS_ARMY_NAVAL'
+
+// ACTION_GROUP_BUNDLE — when to load the unit's files
+ACTION_GROUP_BUNDLE.AGE_ANTIQUITY
+ACTION_GROUP_BUNDLE.AGE_EXPLORATION
+ACTION_GROUP_BUNDLE.AGE_MODERN
+```
+
+## Getting nodes directly
+
+If you need the raw nodes for manual manipulation, call `getNodes()` — or access the internal `DatabaseNode` instances directly:
+
+```typescript
+const unit = new UnitBuilder({ /* ... */ });
+
+// Internal database node after migrate() runs
+console.log(unit._current.units);      // UnitNode[]
+console.log(unit._current.typeTags);   // TypeTagNode[]
+console.log(unit._localizations);      // DatabaseNode with EnglishText rows
+```

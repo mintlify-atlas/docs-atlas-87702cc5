@@ -1,0 +1,165 @@
+---
+title: "Creating Units"
+description: "Use UnitBuilder to implement custom units with stats, costs, type tags, and visual remaps."
+---
+
+This guide covers building custom units with `UnitBuilder` from the TypeScript modding tools.
+
+## Basic unit
+
+Here's a complete example creating a custom scout unit for the Antiquity Age:
+
+```typescript
+import {
+  ACTION_GROUP_BUNDLE,
+  Mod,
+  UNIT,
+  UNIT_CLASS,
+  UnitBuilder
+} from "civ7-modding-tools";
+
+const mod = new Mod({
+  id: "my-unit-mod",
+  version: "1.0",
+});
+
+const customScout = new UnitBuilder({
+  // Which Age this unit belongs to
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+
+  // Unit classification tags
+  typeTags: [UNIT_CLASS.RECON, UNIT_CLASS.RECON_ABILITIES],
+
+  // Core unit properties
+  unit: {
+    unitType: "UNIT_CUSTOM_SCOUT",
+    baseMoves: 3,
+    baseSightRange: 3,
+  },
+
+  // Production cost
+  unitCost: { cost: 60 },
+
+  // Combat statistics
+  unitStat: { combat: 15 },
+
+  // Replace an existing unit (optional)
+  unitReplace: { replacesUnitType: UNIT.SCOUT },
+
+  // Use an existing unit's 3D model
+  visualRemap: { to: UNIT.SCOUT },
+
+  // In-game text
+  localizations: [{
+    name: "Elite Scout",
+    description: "A faster scout with extended visibility range."
+  }],
+});
+
+mod.add([customScout]).build("./dist");
+```
+
+## Key components
+
+| Property | Description |
+|---|---|
+| `actionGroupBundle` | Which Age this unit belongs to (`AGE_ANTIQUITY`, `AGE_EXPLORATION`, `AGE_MODERN`) |
+| `typeTags` | Classification tags from `UNIT_CLASS` (affects what abilities the unit has) |
+| `unit` | Core properties: `unitType`, `baseMoves`, `baseSightRange`, etc. |
+| `unitCost` | Production cost |
+| `unitStat` | Combat statistics: `combat`, `rangedCombat`, `bombardCombat` |
+| `unitReplace` | Makes this unit replace an existing one for this civilization |
+| `visualRemap` | Reuse an existing unit's 3D model |
+| `localizations` | Name and description displayed in-game |
+
+## Advanced unit properties
+
+```typescript
+const advancedUnit = new UnitBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  typeTags: [UNIT_CLASS.MELEE, UNIT_CLASS.HEAVY],
+
+  unit: {
+    unitType: "UNIT_ADVANCED_WARRIOR",
+    baseMoves: 2,
+    baseSightRange: 2,
+    targetingRange: 1,          // For ranged attacks
+    ignoresZoneOfControl: true, // Can ignore ZOC
+    canCapture: true,           // Can capture cities
+  },
+
+  unitCost: { cost: 80 },
+
+  unitStat: {
+    combat: 25,
+    rangedCombat: 0,
+    bombardCombat: 0,
+    religiousCombat: 0,
+    antiAirCombat: 0,
+  },
+
+  localizations: [{
+    name: "Elite Warrior",
+    description: "A powerful melee unit with special combat abilities."
+  }],
+});
+```
+
+## Custom icon
+
+To use a custom icon instead of the default:
+
+```typescript
+import { ACTION_GROUP_BUNDLE, ImportFileBuilder, UnitBuilder, Mod } from "civ7-modding-tools";
+
+const mod = new Mod({ id: "my-unit-mod", version: "1.0" });
+
+// Import the icon asset
+const unitIcon = new ImportFileBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  content: "./assets/my-unit-icon.png",
+  name: "unit_custom_warrior_icon"
+});
+
+const unit = new UnitBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  unit: { unitType: "UNIT_CUSTOM_WARRIOR" },
+  unitCost: { cost: 80 },
+  unitStat: { combat: 25 },
+  // Reference the imported icon
+  icon: { path: `fs://game/${mod.id}/${unitIcon.name}` },
+  typeTags: [UNIT_CLASS.MELEE],
+  localizations: [{ name: "Custom Warrior", description: "A unique warrior unit." }],
+});
+
+mod.add([unitIcon, unit]).build("./dist");
+```
+
+## What the builder generates
+
+Under the hood, `UnitBuilder` generates four XML files placed in `/units/unit-type-name/`:
+
+| File | Purpose |
+|---|---|
+| `current.xml` | Core unit database entry (Types, Units, UnitStats, UnitCosts) |
+| `visual-remap.xml` | Visual remap if `visualRemap` is set |
+| `localization.xml` | English text entries |
+| `icons.xml` | Icon definition |
+
+## Unit upgrade path
+
+Define what unit this one upgrades to:
+
+```typescript
+const unit = new UnitBuilder({
+  // ...
+  unitUpgrade: { upgradeUnit: "UNIT_SWORDSMAN" },
+});
+```
+
+## Related guides
+
+- [Creating Buildings](/guides/typescript/creating-buildings)
+- [Creating Civilizations](/guides/typescript/creating-civilizations) — bind units to a civ
+- [Modifiers & Effects](/guides/typescript/modifiers-and-effects) — add abilities to units
+- [Assets & Icons](/guides/typescript/assets-and-icons)

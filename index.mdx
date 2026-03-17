@@ -1,97 +1,117 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Civ7 Modding Tools"
+description: "A TypeScript SDK, CLI, and comprehensive documentation for creating Civilization VII mods programmatically — type-safe, structured, and version-controlled."
+mode: "custom"
 ---
 
-## Setting up
+<div style={{background: "#020627", minHeight: "100vh", padding: "0"}}>
 
-Get your documentation site up and running in minutes.
+{/* Hero */}
+<div style={{background: "linear-gradient(135deg, #020627 0%, #0d1a2e 50%, #020627 100%)", padding: "80px 40px 60px", textAlign: "center", borderBottom: "1px solid rgba(96,99,146,0.3)"}}>
+  <div style={{display: "inline-block", background: "rgba(48,54,79,0.8)", border: "1px solid rgba(96,99,146,1)", borderRadius: "20px", padding: "6px 16px", fontSize: "13px", color: "#848c8e", marginBottom: "24px", fontFamily: "Inter, sans-serif"}}>
+    TypeScript SDK + CLI for Civilization VII
+  </div>
+  <h1 style={{fontSize: "48px", fontWeight: "700", color: "#ffffff", fontFamily: "Inter, sans-serif", marginBottom: "20px", lineHeight: "1.15"}}>
+    Mod Civilization VII<br/>with TypeScript
+  </h1>
+  <p style={{fontSize: "18px", color: "#cfd0d2", fontFamily: "Inter, sans-serif", maxWidth: "600px", margin: "0 auto 36px", lineHeight: "1.6"}}>
+    Stop editing XML by hand. Build type-safe mods with builders, explore game data relationships graphically, and manage resources from the command line.
+  </p>
+  <div style={{display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap"}}>
+    <a href="/quickstart" style={{background: "#238636", color: "#ffffff", padding: "12px 24px", borderRadius: "6px", fontWeight: "600", fontFamily: "Inter, sans-serif", fontSize: "15px", textDecoration: "none", display: "inline-block"}}>Get Started</a>
+    <a href="/sdk/overview" style={{background: "transparent", color: "#ffffff", padding: "12px 24px", borderRadius: "6px", fontWeight: "600", fontFamily: "Inter, sans-serif", fontSize: "15px", textDecoration: "none", border: "1px solid rgba(255,255,255,0.25)", display: "inline-block"}}>SDK Reference</a>
+  </div>
+</div>
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
+{/* Quick install */}
+<div style={{background: "rgba(48,54,79,0.4)", borderBottom: "1px solid rgba(96,99,146,0.3)", padding: "20px 40px", textAlign: "center"}}>
+  <code style={{fontFamily: "monospace", color: "#529c3a", fontSize: "15px"}}>bun add @mateicanavra/civ7-sdk</code>
+  <span style={{color: "#848c8e", margin: "0 16px", fontSize: "14px"}}>·</span>
+  <code style={{fontFamily: "monospace", color: "#848c8e", fontSize: "15px"}}>bun run link:cli</code>
+  <span style={{color: "#848c8e", margin: "0 16px", fontSize: "14px"}}>·</span>
+  <code style={{fontFamily: "monospace", color: "#848c8e", fontSize: "15px"}}>civ7 data explore LEADER_AMANITORE</code>
+</div>
 
-## Make it yours
+{/* Features grid */}
+<div style={{padding: "60px 40px", maxWidth: "1100px", margin: "0 auto"}}>
+  <h2 style={{fontSize: "30px", fontWeight: "700", color: "#ffffff", fontFamily: "Inter, sans-serif", textAlign: "center", marginBottom: "40px"}}>Everything you need to build mods</h2>
 
-Design a docs site that looks great and empowers your users.
+  <CardGroup cols={3}>
+    <Card title="TypeScript SDK" icon="code" href="/sdk/overview">
+      Strongly-typed builders for units, civilizations, constructibles, progression trees, modifiers, and more. Generate complete `.modinfo` + XML from code.
+    </Card>
+    <Card title="CLI Tool" icon="terminal" href="/cli/overview">
+      The `civ7` command manages game resources — zip/unzip archives, crawl XML dependencies, render graph visualizations, and serve docs locally.
+    </Card>
+    <Card title="Graph Explorer" icon="diagram-project" href="/cli/commands/data-explore">
+      BFS-crawl XML resources from a seed entity. Outputs JSON, DOT, SVG, and an interactive HTML viewer with zoom, pan, and keyboard controls.
+    </Card>
+    <Card title="Official Guides" icon="landmark" href="/guides/official/getting-started">
+      Ported official Firaxis modding documentation — database modding fundamentals, the modifier system, `.modinfo` files, and narrative events.
+    </Card>
+    <Card title="Community Guides" icon="users" href="/guides/community/getting-started">
+      Community-authored guides covering modding architecture, creating civilizations and leaders, age mechanics, and mod patterns.
+    </Card>
+    <Card title="Plugin Libraries" icon="puzzle-piece" href="/sdk/core-concepts">
+      Reusable `plugin-files`, `plugin-graph`, `plugin-git`, and `plugin-mods` packages consumed by the CLI and available independently.
+    </Card>
+  </CardGroup>
+</div>
 
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
-  </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
-  </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
-  </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
+{/* Code example */}
+<div style={{padding: "0 40px 60px", maxWidth: "1100px", margin: "0 auto"}}>
+  <h2 style={{fontSize: "30px", fontWeight: "700", color: "#ffffff", fontFamily: "Inter, sans-serif", textAlign: "center", marginBottom: "12px"}}>From zero to working mod in minutes</h2>
+  <p style={{textAlign: "center", color: "#848c8e", fontFamily: "Inter, sans-serif", marginBottom: "36px"}}>Use the SDK's high-level builders — then call <code>mod.build()</code> to generate all XML and `.modinfo`.</p>
 
-## Create beautiful pages
+```typescript quickstart.ts
+import { Mod, UnitBuilder, ACTION_GROUP_BUNDLE, UNIT_CLASS, UNIT } from '@mateicanavra/civ7-sdk';
 
-Everything you need to create world-class documentation.
+const mod = new Mod({
+  id: 'my-first-mod',
+  name: 'My First Mod',
+  version: '1.0.0',
+});
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+const unit = new UnitBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  typeTags: [UNIT_CLASS.RECON, UNIT_CLASS.RECON_ABILITIES],
+  unit: {
+    unitType: 'UNIT_CUSTOM_SCOUT',
+    baseMoves: 2,
+    baseSightRange: 10,
+  },
+  unitCost: { cost: 20 },
+  unitStat: { combat: 0 },
+  unitReplace: { replacesUnitType: UNIT.SCOUT },
+  visualRemap: { to: UNIT.ARMY_COMMANDER },
+  localizations: [
+    { name: 'Custom Scout', description: 'An enhanced recon unit' }
+  ],
+});
 
-## Need inspiration?
+mod.add([unit]).build('./my-mod');
+```
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+</div>
+
+{/* Navigation links */}
+<div style={{padding: "0 40px 80px", maxWidth: "1100px", margin: "0 auto"}}>
+  <h2 style={{fontSize: "24px", fontWeight: "700", color: "#ffffff", fontFamily: "Inter, sans-serif", textAlign: "center", marginBottom: "32px"}}>Where to go next</h2>
+
+  <CardGroup cols={2}>
+    <Card title="Quickstart" icon="rocket" href="/quickstart">
+      Install the SDK and CLI, pull game data, and build your first mod in under 10 minutes.
+    </Card>
+    <Card title="SDK Builders" icon="hammer" href="/sdk/builders/unit-builder">
+      Browse all available builders — units, civilizations, buildings, trees, modifiers, and more.
+    </Card>
+    <Card title="CLI Commands" icon="square-terminal" href="/cli/commands/data-crawl">
+      Full reference for every `civ7` CLI command with flags, examples, and output formats.
+    </Card>
+    <Card title="TypeScript How-To" icon="screwdriver-wrench" href="/guides/typescript/environment-setup">
+      Step-by-step guides for common modding tasks written for TypeScript developers.
+    </Card>
+  </CardGroup>
+</div>
+
+</div>

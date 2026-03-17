@@ -1,0 +1,69 @@
+---
+title: 'data slice'
+description: 'Copy the XML files listed in a manifest.txt into a destination folder, preserving the original directory structure.'
+---
+
+`civ7 data slice` reads a `manifest.txt` file — one absolute file path per line — and copies each listed file into a destination folder, preserving the relative path structure from the XML root.
+
+This is useful for extracting only the files relevant to a particular seed from the full game resource tree, producing a lean subset for inspection or distribution.
+
+```bash
+civ7 data slice <manifest>
+```
+
+## Arguments
+
+<ParamField path="manifest" type="string" required>
+  Path to a `manifest.txt` file. Typically this is the file produced by [`civ7 data crawl`](/cli/commands/data-crawl) at `out/<seed>/manifest.txt`.
+</ParamField>
+
+## Flags
+
+<ParamField query="--config" type="string">
+  Path to a `civ.config.jsonc` file.
+</ParamField>
+
+<ParamField query="--profile" type="string" default="default">
+  Profile key to use from the config file. Used to resolve the XML root when `--root` is not provided.
+</ParamField>
+
+<ParamField query="--root" type="string">
+  Override the XML root directory. The root is used to compute relative paths when copying files to the destination. If omitted, the CLI resolves it from `outputs.unzip.dir` in the config.
+</ParamField>
+
+<ParamField query="--dest" type="string">
+  Destination directory for the copied files. Defaults to a `slice/` subdirectory next to the manifest file (e.g., `out/<seed>/slice/`).
+</ParamField>
+
+## Path preservation
+
+For each path in `manifest.txt`, the CLI strips the XML root prefix and recreates the same relative structure inside `--dest`. For example, if the root is `/game/resources` and the manifest contains `/game/resources/data/units.xml`, the file is written to `<dest>/data/units.xml`.
+
+If a file listed in the manifest no longer exists on disk, it is skipped with a warning rather than failing the entire operation.
+
+## Examples
+
+Slice using defaults (destination becomes `out/LEADER_AMANITORE/slice/`):
+
+```bash
+civ7 data slice ./out/LEADER_AMANITORE/manifest.txt
+```
+
+Write the slice to a custom directory:
+
+```bash
+civ7 data slice ./out/LEADER_AMANITORE/manifest.txt --dest ./slices/amanitore
+```
+
+Slice with an explicit profile and root:
+
+```bash
+civ7 data slice ./out/CIVILIZATION_ROME/manifest.txt \
+  --profile default \
+  --root /path/to/resources \
+  --dest ./slices/rome
+```
+
+<Note>
+  Run [`civ7 data crawl`](/cli/commands/data-crawl) first to generate the `manifest.txt` file that this command consumes.
+</Note>

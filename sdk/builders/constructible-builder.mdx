@@ -1,0 +1,163 @@
+---
+title: "ConstructibleBuilder"
+description: "Create custom buildings and improvements with yields, valid placements, maintenance costs, and adjacency bonuses."
+---
+
+`ConstructibleBuilder` generates XML for a building or improvement: the `Constructibles` row, `Buildings` or `Improvements` sub-row, yield changes, maintenance costs, valid placements (districts, biomes, terrains, features, resources), and localization.
+
+## Basic usage
+
+```typescript
+import {
+    Mod,
+    ConstructibleBuilder,
+    ACTION_GROUP_BUNDLE,
+    CONSTRUCTIBLE_TYPE_TAG,
+    DISTRICT,
+    YIELD,
+} from '@mateicanavra/civ7-sdk';
+
+const mod = new Mod({ id: 'my-mod', version: '1.0.0' });
+
+const library = new ConstructibleBuilder({
+    actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+    constructible: {
+        constructibleType: 'BUILDING_CUSTOM_LIBRARY',
+    },
+    building: {},
+    typeTags: [
+        CONSTRUCTIBLE_TYPE_TAG.AGELESS,
+        CONSTRUCTIBLE_TYPE_TAG.PRODUCTION,
+    ],
+    constructibleValidDistricts: [DISTRICT.URBAN, DISTRICT.CITY_CENTER],
+    constructibleYieldChanges: [
+        { yieldType: YIELD.SCIENCE, yieldChange: 3 },
+    ],
+    constructibleMaintenances: [
+        { yieldType: YIELD.GOLD, amount: 1 },
+    ],
+    localizations: [
+        { name: 'Custom Library', description: 'Produces science.', tooltip: '+3 Science' },
+    ],
+});
+
+mod.add([library]).build('./dist');
+```
+
+## Constructor options
+
+<ParamField path="actionGroupBundle" type="ActionGroupBundle" required>
+  When to load this constructible's files. Usually `ACTION_GROUP_BUNDLE.AGE_ANTIQUITY`.
+</ParamField>
+
+<ParamField path="constructible" type="TPartialRequired<TConstructibleNode, 'constructibleType'>" required>
+  Core row data. `constructibleType` is required and determines whether a `Buildings` or `Improvements` sub-row is auto-inferred.
+
+  | Field | Type | Description |
+  |---|---|---|
+  | `constructibleType` | `string` | Starts with `BUILDING_` or `IMPROVEMENT_` |
+  | `age` | `string` | Age this constructible becomes available |
+  | `productionCost` | `number` | Base production cost |
+  | `purchaseCost` | `number` | Gold purchase cost |
+  | `maintenanceCost` | `number` | Per-turn maintenance |
+  | `traitType` | `string` | Restrict to a civilization trait |
+</ParamField>
+
+<ParamField path="building" type="Partial<TBuildingNode> | null">
+  Pass `{}` to register this constructible as a building (i.e. insert a row into the `Buildings` table). The builder auto-infers this if `constructibleType` starts with `BUILDING_`. Leave `null` for improvements.
+</ParamField>
+
+<ParamField path="improvement" type="Partial<TImprovementNode> | null">
+  Pass `{}` to register this constructible as an improvement. Auto-inferred from `IMPROVEMENT_` prefix.
+</ParamField>
+
+<ParamField path="typeTags" type="TObjectValues<typeof CONSTRUCTIBLE_TYPE_TAG>[]">
+  Type tags that control filters, purchase conditions, and special behaviors.
+
+  ```typescript
+  import { CONSTRUCTIBLE_TYPE_TAG } from '@mateicanavra/civ7-sdk';
+
+  typeTags: [CONSTRUCTIBLE_TYPE_TAG.AGELESS, CONSTRUCTIBLE_TYPE_TAG.FOOD]
+  ```
+</ParamField>
+
+<ParamField path="constructibleValidDistricts" type="TObjectValues<typeof DISTRICT>[]">
+  Districts where this constructible can be placed.
+
+  ```typescript
+  import { DISTRICT } from '@mateicanavra/civ7-sdk';
+
+  constructibleValidDistricts: [DISTRICT.URBAN, DISTRICT.CITY_CENTER]
+  ```
+</ParamField>
+
+<ParamField path="constructibleValidBiomes" type="TObjectValues<typeof BIOME>[]">
+  Biomes where an improvement can be built.
+</ParamField>
+
+<ParamField path="constructibleValidFeatures" type="TObjectValues<typeof FEATURE>[]">
+  Terrain features the improvement can be placed on.
+</ParamField>
+
+<ParamField path="constructibleValidTerrains" type="TObjectValues<typeof TERRAIN>[]">
+  Terrain types the improvement can be placed on.
+</ParamField>
+
+<ParamField path="constructibleValidResources" type="TPartialRequired<TConstructibleValidResourceNode, 'resourceType'>[]">
+  Resources required for placement.
+</ParamField>
+
+<ParamField path="constructibleYieldChanges" type="Partial<TConstructibleYieldChangeNode>[]">
+  Flat yield bonuses provided by this constructible.
+
+  ```typescript
+  constructibleYieldChanges: [
+      { yieldType: YIELD.GOLD, yieldChange: 5 },
+      { yieldType: YIELD.FOOD, yieldChange: 2 },
+  ]
+  ```
+</ParamField>
+
+<ParamField path="constructibleMaintenances" type="Partial<TConstructibleMaintenanceNode>[]">
+  Per-turn yield costs for maintaining this constructible.
+
+  ```typescript
+  constructibleMaintenances: [
+      { yieldType: YIELD.GOLD, amount: 1 },
+  ]
+  ```
+</ParamField>
+
+<ParamField path="adjacencyYieldChanges" type="Partial<TAdjacencyYieldChangeNode>[]">
+  Adjacency yield bonuses. The builder automatically creates `ConstructibleAdjacency` rows linking each `AdjacencyYieldChange` to this constructible.
+</ParamField>
+
+<ParamField path="constructiblePlunders" type="TPartialRequired<ConstructiblePlunderNode, 'plunderType'>[]">
+  Resources gained when this constructible is pillaged.
+</ParamField>
+
+<ParamField path="districtFreeConstructibles" type="TPartialRequired<TDistrictFreeConstructibleNode, 'districtType'>[]">
+  Free constructibles granted to a district when it is built.
+</ParamField>
+
+<ParamField path="icon" type="TPartialRequired<TIconDefinitionNode, 'path'>">
+  Icon for this constructible. Defaults to `fs://game/civ_sym_han`.
+</ParamField>
+
+<ParamField path="localizations" type="TConstructibleLocalization[]">
+  Display text.
+
+  | Field | Type | Description |
+  |---|---|---|
+  | `name` | `string` | Constructible name |
+  | `description` | `string` | Civilopedia description |
+  | `tooltip` | `string` | Short tooltip |
+</ParamField>
+
+## Output files
+
+| File | Action group | Action |
+|---|---|---|
+| `always.xml` | `bundle.always` | `UpdateDatabase` |
+| `localization.xml` | `bundle.shell`, `bundle.always` | `UpdateText` |
+| `icons.xml` | `bundle.shell`, `bundle.always` | `UpdateIcons` |

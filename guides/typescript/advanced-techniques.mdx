@@ -1,0 +1,336 @@
+---
+title: "Advanced Techniques"
+description: "Entity binding, multi-file projects, low-level node API, and custom builder classes."
+---
+
+This guide covers advanced patterns for building complex, maintainable Civ VII mods with the TypeScript tools.
+
+## Entity binding
+
+`bind()` is the primary way to link related game elements. When you bind one builder to another, the SDK automatically wires up all necessary cross-references in the generated XML.
+
+### What binding does
+
+| Source | Target | Effect |
+|---|---|---|
+| `ModifierBuilder` | `CivilizationBuilder` | Modifier activates for any player using that civ |
+| `UnitBuilder` | `CivilizationBuilder` | Unit gets `traitType`, appears in selection screen |
+| `ConstructibleBuilder` | `CivilizationBuilder` | Building/improvement becomes civ-exclusive |
+| `ModifierBuilder` | `TraditionBuilder` | Modifier activates when tradition is slotted |
+| `ModifierBuilder` | `UniqueQuarterBuilder` | Modifier activates when quarter is complete |
+| `ModifierBuilder` | `ProgressionTreeNodeBuilder` | Effect unlocks when node is researched |
+| `LeaderUnlockBuilder` | `CivilizationBuilder` | Leader is added to civ's selection screen |
+
+### Binding multiple entities
+
+```typescript
+const dacia = new CivilizationBuilder({ /* ... */ });
+const falxWarrior = new UnitBuilder({ /* ... */ });
+const dacianFortress = new ConstructibleBuilder({ /* ... */ });
+const mountainWarfare = new ModifierBuilder({ /* ... */ });
+
+// Bind all unique content to the civilization in one call
+dacia.bind([falxWarrior, dacianFortress, mountainWarfare]);
+```
+
+### Chain binding
+
+You can chain bindings for layered relationships:
+
+```typescript
+const combatBonus = new ModifierBuilder({ /* +5 combat */ });
+const falxWarrior = new UnitBuilder({ /* ... */ });
+const dacia = new CivilizationBuilder({ /* ... */ });
+
+// Bind the combat bonus to the unit
+falxWarrior.bind([combatBonus]);
+
+// Bind the unit to the civilization
+dacia.bind([falxWarrior]);
+
+// The complete chain of relationships is maintained
+```
+
+---
+
+## Multi-file project structure
+
+For larger mods, split component definitions across files:
+
+```text
+my-mod/
+├── src/
+│   ├── civilizations/
+│   │   └── dacia.ts
+│   ├── units/
+│   │   ├── falx-warrior.ts
+│   │   └── mountain-scout.ts
+│   ├── buildings/
+│   │   └── dacian-fortress.ts
+│   └── modifiers/
+│       └── dacian-warfare.ts
+├── assets/
+│   ├── civ-icon.png
+│   └── unit-icons/
+│       └── falx-warrior.png
+├── build.ts
+└── package.json
+```
+
+**`src/civilizations/dacia.ts`:**
+
+```typescript
+import { CivilizationBuilder, ACTION_GROUP_BUNDLE } from "civ7-modding-tools";
+
+export function createDacianCivilization() {
+  return new CivilizationBuilder({
+    actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+    civilization: {
+      domain: "AntiquityAgeCivilizations",
+      civilizationType: "CIVILIZATION_DACIA"
+    },
+    // ...
+  });
+}
+```
+
+**`src/units/falx-warrior.ts`:**
+
+```typescript
+import { UnitBuilder, ACTION_GROUP_BUNDLE, UNIT_CLASS } from "civ7-modding-tools";
+
+export function createFalxWarrior() {
+  return new UnitBuilder({
+    actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+    typeTags: [UNIT_CLASS.MELEE],
+    unit: { unitType: "UNIT_FALX_WARRIOR" },
+    unitCost: { cost: 90 },
+    unitStat: { combat: 35 },
+    localizations: [{ name: "Falx Warrior", description: "Dacian warrior." }]
+  });
+}
+```
+
+**`build.ts`:**
+
+```typescript
+import { Mod } from "civ7-modding-tools";
+import { createDacianCivilization } from "./src/civilizations/dacia";
+import { createFalxWarrior } from "./src/units/falx-warrior";
+import { createMountainScout } from "./src/units/mountain-scout";
+import { createDacianFortress } from "./src/buildings/dacian-fortress";
+
+const mod = new Mod({ id: "dacia-complete-mod", version: "1.0" });
+
+const dacia = createDacianCivilization();
+const falxWarrior = createFalxWarrior();
+const mountainScout = createMountainScout();
+const dacianFortress = createDacianFortress();
+
+dacia.bind([falxWarrior, mountainScout, dacianFortress]);
+
+mod.add([dacia, falxWarrior, mountainScout, dacianFortress]);
+mod.build("./dist");
+```
+
+---
+
+## Reusable component templates
+
+Use spread syntax to share base properties across similar entities:
+
+```typescript
+const baseUnit = {
+  baseMoves: 2,
+  baseSightRange: 2,
+  domain: "DOMAIN_LAND",
+};
+
+const meleeWarrior = new UnitBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  unit: {
+    ...baseUnit,
+    unitType: "UNIT_MELEE_WARRIOR",
+    combatStrength: 15
+  },
+  typeTags: [UNIT_CLASS.MELEE],
+  unitCost: { cost: 60 },
+  unitStat: { combat: 15 },
+  localizations: [{ name: "Melee Warrior", description: "Standard melee fighter." }]
+});
+
+const eliteWarrior = new UnitBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  unit: {
+    ...baseUnit,
+    unitType: "UNIT_ELITE_WARRIOR",
+  },
+  typeTags: [UNIT_CLASS.MELEE, UNIT_CLASS.HEAVY],
+  unitCost: { cost: 90 },
+  unitStat: { combat: 30 },
+  localizations: [{ name: "Elite Warrior", description: "Veteran warrior." }]
+});
+```
+
+---
+
+## Low-level node API
+
+For fine-grained control, bypass builders and work directly with XML nodes:
+
+```typescript
+import {
+  ACTION_GROUP,
+  ACTION_GROUP_ACTION,
+  DatabaseNode,
+  KIND,
+  Mod,
+  TypeNode,
+  UnitNode,
+  XmlFile
+} from "civ7-modding-tools";
+
+const mod = new Mod({ id: "manual-node-mod", version: "1.0" });
+
+// Build the XML structure manually
+const unit = new UnitNode({
+  unitType: "UNIT_CUSTOM_SCOUT",
+  baseMoves: 2,
+  baseSightRange: 10,
+  domain: "DOMAIN_LAND"
+});
+
+const typeNode = new TypeNode({
+  type: unit.unitType,
+  kind: KIND.UNIT
+});
+
+const database = new DatabaseNode({
+  types: [typeNode],
+  units: [unit]
+});
+
+// Create the XML file manually with explicit action groups
+const unitFile = new XmlFile({
+  path: `/units/${unit.unitType}/`,
+  name: "current.xml",
+  content: database.toXmlElement(),
+  actionGroups: [ACTION_GROUP.AGE_ANTIQUITY_CURRENT],
+  actionGroupActions: [ACTION_GROUP_ACTION.UPDATE_DATABASE]
+});
+
+mod.addFiles([unitFile]);
+mod.build("./dist");
+```
+
+### When to use the low-level API
+
+- When you need to create structures not supported by the builders
+- When implementing experimental or niche game features
+- When working with custom database tables
+- When you need precise control over XML structure or action group timing
+
+---
+
+## Custom builders
+
+Extend the built-in tools with your own builder classes:
+
+```typescript
+import { BaseBuilder, ACTION_GROUP_BUNDLE, DatabaseNode, TypeNode, XmlFile, KIND, ACTION_GROUP_ACTION } from "civ7-modding-tools";
+
+export class ReligionBuilder extends BaseBuilder {
+  religion: { type: string; name: string };
+
+  constructor(config: any) {
+    super();
+    this.fill(config);
+  }
+
+  build() {
+    const typeNode = new TypeNode({
+      type: this.religion.type,
+      kind: "KIND_RELIGION"
+    });
+
+    const database = new DatabaseNode({
+      types: [typeNode],
+      // ... other nodes
+    });
+
+    return [
+      new XmlFile({
+        path: `/religions/${this.religion.type}/`,
+        name: "current.xml",
+        content: database.toXmlElement(),
+        actionGroups: [this.actionGroupBundle.current],
+        actionGroupActions: [ACTION_GROUP_ACTION.UPDATE_DATABASE]
+      })
+    ];
+  }
+}
+
+// Usage
+const customReligion = new ReligionBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  religion: { type: "RELIGION_CUSTOM", name: "Custom Religion" }
+});
+
+mod.add([customReligion]);
+```
+
+---
+
+## Age-specific content
+
+The key to age-specific content is setting the correct `actionGroupBundle` per instance:
+
+```typescript
+// Antiquity Age unit
+const antiquityWarrior = new UnitBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  unit: { unitType: "UNIT_WARRIOR", /* antiquity stats */ }
+});
+
+// Same unit type, different Age (upgraded stats)
+const explorationWarrior = new UnitBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_EXPLORATION,
+  unit: { unitType: "UNIT_WARRIOR", /* exploration stats */ }
+});
+
+// Civilization with age-appropriate content
+daciaAntiquity.bind([antiquityWarrior]);
+daciaExploration.bind([explorationWarrior]);
+```
+
+---
+
+## Best practices summary
+
+<AccordionGroup>
+  <Accordion title="Project organization">
+    - One component per file
+    - Export factory functions (e.g., `createFalxWarrior()`) for reusability
+    - Import and compose everything in `build.ts`
+    - Use TypeScript strict mode to catch type errors early
+  </Accordion>
+
+  <Accordion title="Binding strategy">
+    - Always bind before calling `mod.add()`
+    - Add both the parent and all bound children to `mod.add([])`
+    - Use chain binding for layered relationships (modifier → unit → civ)
+  </Accordion>
+
+  <Accordion title="When to use low-level API">
+    - Start with builders — they handle 80%+ of common use cases
+    - Drop to nodes when builders don't support what you need
+    - Document your node-level code thoroughly — it's harder to read than builder code
+  </Accordion>
+</AccordionGroup>
+
+## Related guides
+
+- [Environment Setup](/guides/typescript/environment-setup)
+- [Creating Civilizations](/guides/typescript/creating-civilizations)
+- [Modifiers & Effects](/guides/typescript/modifiers-and-effects)
+- [Unique Quarters](/guides/typescript/unique-quarters)

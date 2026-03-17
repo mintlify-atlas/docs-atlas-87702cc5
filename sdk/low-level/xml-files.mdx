@@ -1,0 +1,136 @@
+---
+title: "XmlFile and BaseFile"
+description: "The file abstraction layer — XmlFile for XML output, ImportFile for binary assets, and how files are registered in the .modinfo."
+---
+
+Each output file in a mod is represented by a `BaseFile` subclass. Builders create these internally, but you can construct them directly when using the low-level API.
+
+## `BaseFile<T>`
+
+`BaseFile` is the abstract base for all file types. It tracks:
+
+```typescript
+class BaseFile<T = any> {
+    path: string = '/';                  // directory path in the mod output
+    name: string = 'file.txt';           // file name
+    content: any = null;                 // file content
+    actionGroups: ActionGroupNode[] = [];
+    actionGroupActions: TObjectValues<typeof ACTION_GROUP_ACTION>[] = [
+        ACTION_GROUP_ACTION.UPDATE_DATABASE
+    ];
+
+    get isEmpty(): boolean { /* true when content is null/undefined */ }
+    get modInfoPath(): string { /* path + name, relative to mod root */ }
+
+    write(dist: string): void { /* subclass implementation */ }
+}
+```
+
+- `isEmpty` — `Mod.build()` skips files where `isEmpty` is `true`.
+- `modInfoPath` — the path written into the `.modinfo` `<Item>` elements.
+
+## `XmlFile`
+
+`XmlFile extends BaseFile` and accepts any `XmlElement | XmlElement[] | null` as `content`.
+
+```typescript
+import {
+    XmlFile,
+    DatabaseNode,
+    TypeNode,
+    KIND,
+    ACTION_GROUP,
+    ACTION_GROUP_ACTION,
+} from '@mateicanavra/civ7-sdk';
+
+const db = new DatabaseNode({
+    types: [new TypeNode({ type: 'UNIT_CUSTOM_SCOUT', kind: KIND.UNIT })],
+});
+
+const file = new XmlFile({
+    path: '/units/unit-custom-scout/',
+    name: 'current.xml',
+    content: db.toXmlElement(),
+    actionGroups: [ACTION_GROUP.AGE_ANTIQUITY_CURRENT],
+    actionGroupActions: [ACTION_GROUP_ACTION.UPDATE_DATABASE],
+});
+```
+
+### Constructor options
+
+<ParamField path="path" type="string" required>
+  The directory path inside the mod output. Must begin with `/`. Example: `'/units/my-unit/'`.
+</ParamField>
+
+<ParamField path="name" type="string" required>
+  The file name. Example: `'current.xml'`.
+</ParamField>
+
+<ParamField path="content" type="XmlElement | XmlElement[] | null | undefined">
+  The XML content to write. If `null` or `undefined`, the file is skipped during `mod.build()`.
+</ParamField>
+
+<ParamField path="actionGroups" type="ActionGroupNode[]" required>
+  One or more `ActionGroupNode` instances that determine when this file is loaded.
+
+  Use pre-built constants from `ACTION_GROUP`:
+
+  ```typescript
+  import { ACTION_GROUP } from '@mateicanavra/civ7-sdk';
+
+  ACTION_GROUP.SHELL                 // shell scope, always criteria
+  ACTION_GROUP.GAME                  // game scope, always criteria
+  ACTION_GROUP.AGE_ANTIQUITY_CURRENT // game scope, Antiquity only
+  ACTION_GROUP.AGE_ANTIQUITY_EXIST   // game scope, Antiquity through Modern
+  ACTION_GROUP.AGE_EXPLORATION_CURRENT
+  ACTION_GROUP.AGE_MODERN_CURRENT
+  ```
+</ParamField>
+
+<ParamField path="actionGroupActions" type="TObjectValues<typeof ACTION_GROUP_ACTION>[]" required>
+  The action(s) this file performs within its action group.
+
+  ```typescript
+  import { ACTION_GROUP_ACTION } from '@mateicanavra/civ7-sdk';
+
+  ACTION_GROUP_ACTION.UPDATE_DATABASE    // 'UpdateDatabase'
+  ACTION_GROUP_ACTION.UPDATE_ICONS       // 'UpdateIcons'
+  ACTION_GROUP_ACTION.UPDATE_TEXT        // 'UpdateText'
+  ACTION_GROUP_ACTION.UPDATE_VISUAL_REMAPS // 'UpdateVisualRemaps'
+  ACTION_GROUP_ACTION.IMPORT_FILES       // 'ImportFiles'
+  ```
+</ParamField>
+
+### `write(dist)`
+
+Converts `content` to an XML string using `jstoxml` and writes it to `dist + path + name`. The output directory is created recursively if it does not exist.
+
+## Multiple action groups
+
+A single file can be assigned to multiple action groups. The game will process it under each group it appears in:
+
+```typescript
+const locFile = new XmlFile({
+    path: '/units/my-unit/',
+    name: 'localization.xml',
+    content: locDb.toXmlElement(),
+    actionGroups: [ACTION_GROUP.SHELL, ACTION_GROUP.GAME], // both shell and game
+    actionGroupActions: [ACTION_GROUP_ACTION.UPDATE_TEXT],
+});
+```
+
+## `ImportFile`
+
+`ImportFile` copies a binary file (image, SQL, etc.) from the source path to the mod output directory. It is used internally by `ImportFileBuilder`.
+
+```typescript
+import { ImportFile, ACTION_GROUP, ACTION_GROUP_ACTION } from '@mateicanavra/civ7-sdk';
+
+const icon = new ImportFile({
+    path: '/',
+    name: 'my-icon.png',
+    content: './assets/my-icon.png',  // source path on disk
+    actionGroups: [ACTION_GROUP.SHELL],
+    actionGroupActions: [ACTION_GROUP_ACTION.IMPORT_FILES],
+});
+```

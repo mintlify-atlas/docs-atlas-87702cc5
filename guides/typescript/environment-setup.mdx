@@ -1,0 +1,149 @@
+---
+title: "Environment Setup"
+description: "Install and configure the TypeScript modding tools for Civilization VII."
+---
+
+This guide sets up your development environment for TypeScript-based Civ VII modding using the community `civ7-modding-tools` package.
+
+## Prerequisites
+
+- [Bun](https://bun.sh) installed (recommended) or Node.js 18+
+- Basic TypeScript/JavaScript knowledge
+- Familiarity with Civ VII modding concepts (see [Getting Started](/guides/community/getting-started))
+
+## Install from npm
+
+<Steps>
+  <Step title="Create a project directory">
+    ```bash
+    mkdir my-civ7-mod
+    cd my-civ7-mod
+    ```
+  </Step>
+
+  <Step title="Initialize the project">
+    ```bash
+    bun init -y
+    ```
+  </Step>
+
+  <Step title="Install the modding tools">
+    ```bash
+    bun add civ7-modding-tools
+    bun add -d typescript
+    ```
+  </Step>
+
+  <Step title="Create tsconfig.json">
+    ```json
+    {
+      "compilerOptions": {
+        "target": "ES2020",
+        "module": "CommonJS",
+        "esModuleInterop": true,
+        "strict": true,
+        "outDir": "./dist"
+      },
+      "include": ["src/**/*", "build.ts"]
+    }
+    ```
+  </Step>
+</Steps>
+
+## Install from GitHub
+
+<Accordion title="Install from source" icon="github">
+  <Steps>
+    <Step title="Clone the repository">
+      ```bash
+      git clone https://github.com/izica/civ7-modding-tools
+      cd civ7-modding-tools
+      ```
+    </Step>
+    <Step title="Install dependencies">
+      ```bash
+      bun install
+      ```
+    </Step>
+    <Step title="Copy examples as starting point">
+      ```bash
+      mkdir -p src
+      cp examples/* src/
+      ```
+    </Step>
+  </Steps>
+</Accordion>
+
+## Project structure
+
+```text
+my-civ7-mod/
+├── src/           # Component definitions
+│   ├── civilizations/
+│   ├── units/
+│   ├── buildings/
+│   └── modifiers/
+├── assets/        # Icons and other assets
+├── build.ts       # Main build entry point
+├── package.json
+└── tsconfig.json
+```
+
+## Basic mod setup
+
+Create `build.ts` in your project root:
+
+```typescript
+import { Mod } from "civ7-modding-tools";
+
+// Create the mod
+const mod = new Mod({
+  id: "my-first-mod",   // Unique mod identifier
+  version: "1.0",       // Version string
+});
+
+// Add components here
+// mod.add([...]);
+
+// Generate mod files
+mod.build("./dist");
+```
+
+Run it:
+
+```bash
+bun run build.ts
+```
+
+This generates a `dist/` folder containing the `.modinfo` and all XML files. Copy the contents of `dist/` to your Civ VII `Mods` folder to test.
+
+## How the build pipeline works
+
+The TypeScript tools follow a three-stage pipeline:
+
+```text
+Builders (TypeScript) → Nodes (XML structure) → Files (.modinfo + XML)
+```
+
+1. **Builders** provide a high-level API (e.g., `UnitBuilder`, `CivilizationBuilder`)
+2. **Nodes** are low-level representations that map directly to game XML
+3. **Files** serialize nodes into the files the game loads
+
+Most of the time you only work with builders. The node and file layers are exposed for advanced use cases.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Creating Units" icon="sword" href="/guides/typescript/creating-units">
+    Build your first custom unit.
+  </Card>
+  <Card title="Creating Buildings" icon="building" href="/guides/typescript/creating-buildings">
+    Define buildings and improvements.
+  </Card>
+  <Card title="Creating Civilizations" icon="flag" href="/guides/typescript/creating-civilizations">
+    Build a complete new civilization.
+  </Card>
+  <Card title="Modifiers & Effects" icon="sparkles" href="/guides/typescript/modifiers-and-effects">
+    Implement gameplay effects.
+  </Card>
+</Columns>

@@ -1,80 +1,154 @@
 ---
 title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+description: "Install the SDK and CLI, pull game data from your Civ7 installation, and build your first working mod."
 ---
 
-## Get started in three steps
+This guide gets you from zero to a working mod. You will install the project dependencies, link the CLI globally, pull game data from your Civilization VII installation, and build a custom unit using the SDK.
 
-Get your documentation site running locally and make your first customization.
+## Prerequisites
 
-### Step 1: Set up your local environment
+Before you start, make sure you have:
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+- **Node.js 22.14 or later** — check with `node --version`
+- **Bun** — install from [bun.sh](https://bun.sh)
+- **Civilization VII** installed locally (required for the game data step)
 
-### Step 2: Deploy your changes
+## Steps
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+<Steps>
+  <Step title="Clone the repository">
+    Clone the monorepo and navigate into it:
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+    ```bash
+    git clone https://github.com/mateicanavra/civ7-modding-tools.git
+    cd civ7-modding-tools
+    ```
+  </Step>
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+  <Step title="Install dependencies and link the CLI">
+    Run both commands from the repo root. The first installs all workspace dependencies using the lockfile. The second builds the CLI and links the `civ7` binary globally so you can run it from any directory.
 
-### Step 3: Go live
+    ```bash
+    bun install --frozen-lockfile
+    bun run link:cli
+    ```
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+    <Note>
+      After linking, you may need to open a new terminal or source your shell profile before `civ7` becomes available. Run `civ7 --help` to verify the installation.
+    </Note>
+  </Step>
+
+  <Step title="Configure your Civ7 install path">
+    Open `civ.config.jsonc` in the repo root and set `inputs.installDir` to the path of your Civilization VII installation:
+
+    ```jsonc
+    {
+        "inputs": {
+            "installDir": "~/Library/Application Support/Steam/steamapps/common/Sid Meier's Civilization VII/CivilizationVII.app/Contents/Resources"
+        },
+        "outputs": {
+            "baseDir": ".civ7/outputs",
+            "zip": {
+                "dir": "archives",
+                "name": "civ7-official-resources.zip"
+            },
+            "unzip": {
+                "dir": "resources"
+            }
+        }
+    }
+    ```
+
+    See [Configuration](/setup/configuration) for the full list of options and platform-specific install paths.
+  </Step>
+
+  <Step title="Pull game data">
+    This command runs `civ7 zip` followed by `civ7 unzip`, placing the extracted resources in `.civ7/outputs/resources/`:
+
+    ```bash
+    bun run refresh:data
+    ```
+
+    You only need to run this once. The `docs` and `playground` apps sync what they need from this central location automatically when you start them.
+  </Step>
+
+  <Step title="Install the SDK in your mod project">
+    Create a new directory for your mod (or use an existing one) and install the SDK:
+
+    ```bash
+    mkdir my-first-mod && cd my-first-mod
+    bun init -y
+    bun add @mateicanavra/civ7-sdk
+    ```
+  </Step>
+
+  <Step title="Create your first mod">
+    Create a file called `mod.ts` and add the following code. This creates a custom scout unit that replaces the base game's `UNIT_SCOUT` and uses the army commander's visual model:
+
+    ```typescript mod.ts
+    import { Mod, UnitBuilder, ACTION_GROUP_BUNDLE, UNIT_CLASS, UNIT } from '@mateicanavra/civ7-sdk';
+
+    const mod = new Mod({
+        id: 'my-first-mod',
+        version: '1.0.0',
+    });
+
+    const unit = new UnitBuilder({
+        actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+        typeTags: [UNIT_CLASS.RECON, UNIT_CLASS.RECON_ABILITIES],
+        unit: {
+            unitType: 'UNIT_CUSTOM_SCOUT',
+            baseMoves: 2,
+            baseSightRange: 10,
+        },
+        unitCost: { cost: 20 },
+        unitStat: { combat: 0 },
+        unitReplace: { replacesUnitType: UNIT.SCOUT },
+        visualRemap: { to: UNIT.ARMY_COMMANDER },
+        localizations: [
+            { name: 'Custom Scout', description: 'An enhanced scout unit' }
+        ],
+    });
+
+    mod.add([unit]).build('./output');
+    ```
+  </Step>
+
+  <Step title="Build and inspect the output">
+    Run the script to generate your mod files:
+
+    ```bash
+    bun run mod.ts
+    ```
+
+    The SDK creates the `output/` directory containing your `.modinfo` file and all generated XML:
+
+    ```
+    output/
+    ├── my-first-mod.modinfo
+    └── units/
+        └── UNIT_CUSTOM_SCOUT/
+            ├── database.xml
+            └── localizations.xml
+    ```
+
+    Copy the `output/` folder into your Civilization VII mods directory to load it in-game.
+  </Step>
+</Steps>
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
-
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="SDK builders" icon="hammer" href="/sdk/builders/unit-builder">
+    Explore all available builders — units, civilizations, buildings, progression trees, modifiers, and more.
+  </Card>
+  <Card title="CLI commands" icon="square-terminal" href="/cli/commands/data-crawl">
+    Use the `civ7` CLI to crawl XML dependencies and visualize game data relationships.
+  </Card>
+  <Card title="TypeScript how-to" icon="screwdriver-wrench" href="/guides/typescript/environment-setup">
+    Step-by-step guides for common modding tasks written for TypeScript developers.
+  </Card>
+  <Card title="Configuration" icon="sliders" href="/setup/configuration">
+    Customize `civ.config.jsonc` to control output paths, profiles, and CLI behavior.
+  </Card>
 </CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>

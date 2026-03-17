@@ -1,0 +1,141 @@
+---
+title: "Action groups"
+description: "How action groups control when mod files are loaded during the Civ7 game lifecycle."
+---
+
+Every file in a Civilization VII mod is associated with one or more **action groups**. Action groups tell the game engine when to process a file — whether at the main menu (shell), at any point during gameplay (game/always), or only while a specific age is active.
+
+## Anatomy of an action group
+
+An action group has three parts:
+
+| Part | Description |
+|---|---|
+| **Scope** | Either `shell` (main menu, lobby) or `game` (during an active game session) |
+| **Criteria** | Conditions that must be true for the group to activate (e.g. which ages are active) |
+| **Actions** | The operations to perform (`UpdateDatabase`, `UpdateText`, `UpdateIcons`, etc.) |
+
+In the SDK, these are represented by `ActionGroupNode`, `CriteriaNode`, and `ACTION_GROUP_ACTION`.
+
+## `ACTION_GROUP` constants
+
+The SDK provides pre-built `ActionGroupNode` instances for all standard load phases:
+
+```typescript
+import { ACTION_GROUP } from '@mateicanavra/civ7-sdk';
+```
+
+| Constant | Scope | Criteria |
+|---|---|---|
+| `ACTION_GROUP.SHELL` | `shell` | Always (main menu + in-game UI) |
+| `ACTION_GROUP.GAME` | `game` | Always (any active game) |
+| `ACTION_GROUP.AGE_ANTIQUITY_CURRENT` | `game` | Only when Antiquity is the current age |
+| `ACTION_GROUP.AGE_ANTIQUITY_EXIST` | `game` | Antiquity, Exploration, or Modern |
+| `ACTION_GROUP.AGE_EXPLORATION_CURRENT` | `game` | Only when Exploration is the current age |
+| `ACTION_GROUP.AGE_EXPLORATION_EXIST` | `game` | Exploration or Modern |
+| `ACTION_GROUP.AGE_MODERN_CURRENT` | `game` | Only when Modern is the current age |
+| `ACTION_GROUP.AGE_MODERN_EXIST` | `game` | Modern only |
+
+## `ACTION_GROUP_ACTION` constants
+
+```typescript
+import { ACTION_GROUP_ACTION } from '@mateicanavra/civ7-sdk';
+
+ACTION_GROUP_ACTION.UPDATE_DATABASE     // 'UpdateDatabase'
+ACTION_GROUP_ACTION.UPDATE_ICONS        // 'UpdateIcons'
+ACTION_GROUP_ACTION.UPDATE_TEXT         // 'UpdateText'
+ACTION_GROUP_ACTION.UPDATE_VISUAL_REMAPS // 'UpdateVisualRemaps'
+ACTION_GROUP_ACTION.IMPORT_FILES        // 'ImportFiles'
+```
+
+## `ACTION_GROUP_BUNDLE` constants
+
+`ACTION_GROUP_BUNDLE` provides pre-assembled `ActionGroupBundle` objects for each age. Every builder accepts an `actionGroupBundle` property that defaults the file routing.
+
+```typescript
+import { ACTION_GROUP_BUNDLE, AGE } from '@mateicanavra/civ7-sdk';
+
+ACTION_GROUP_BUNDLE.AGE_ANTIQUITY   // shell + game + antiquity-current + antiquity-exist
+ACTION_GROUP_BUNDLE.AGE_EXPLORATION // shell + game + exploration-current + exploration-exist
+ACTION_GROUP_BUNDLE.AGE_MODERN      // shell + game + modern-current + modern-exist
+```
+
+Each bundle exposes four slots:
+
+```typescript
+const bundle = ACTION_GROUP_BUNDLE.AGE_ANTIQUITY;
+
+bundle.shell    // ACTION_GROUP.SHELL
+bundle.always   // ACTION_GROUP.GAME
+bundle.current  // ACTION_GROUP.AGE_ANTIQUITY_CURRENT
+bundle.exist    // ACTION_GROUP.AGE_ANTIQUITY_EXIST
+```
+
+## `ActionGroupBundle` class
+
+You can create custom bundles by instantiating `ActionGroupBundle` directly:
+
+```typescript
+import { ActionGroupBundle, ACTION_GROUP } from '@mateicanavra/civ7-sdk';
+
+const customBundle = new ActionGroupBundle({
+    shell: ACTION_GROUP.SHELL,
+    always: ACTION_GROUP.GAME,
+    current: ACTION_GROUP.AGE_EXPLORATION_CURRENT,
+    exist: ACTION_GROUP.AGE_EXPLORATION_EXIST,
+});
+```
+
+## How the `.modinfo` is built
+
+During `mod.build()`, the SDK:
+
+1. Collects all `XmlFile` instances from all builders.
+2. Extracts the unique `CriteriaNode` entries from every file's action groups.
+3. Groups files by their action group ID.
+4. Emits `<ActionCriteria>` and `<ActionGroups>` blocks in the `.modinfo`.
+
+Example `.modinfo` output (simplified):
+
+```xml
+<ActionCriteria>
+    <Criteria id="always">
+        <AlwaysMet />
+    </Criteria>
+    <Criteria id="age-antiquity-current">
+        <AgeInUse>AGE_ANTIQUITY</AgeInUse>
+    </Criteria>
+</ActionCriteria>
+<ActionGroups>
+    <ActionGroup id="..." scope="shell" criteria="always">
+        <Actions>
+            <UpdateText>
+                <Item>units/unit-custom-scout/localization.xml</Item>
+            </UpdateText>
+        </Actions>
+    </ActionGroup>
+    <ActionGroup id="..." scope="game" criteria="age-antiquity-current">
+        <Actions>
+            <UpdateDatabase>
+                <Item>units/unit-custom-scout/current.xml</Item>
+            </UpdateDatabase>
+        </Actions>
+    </ActionGroup>
+</ActionGroups>
+```
+
+## Choosing the right action group
+
+<Tip>
+Use `ACTION_GROUP_BUNDLE` for all standard builders. Only reach for individual `ACTION_GROUP` constants when you are constructing `XmlFile` objects manually or need to override builder defaults.
+</Tip>
+
+| File type | Recommended action group |
+|---|---|
+| Unit/civilization database rows | `bundle.current` |
+| Legacy / always-available rows | `bundle.always` |
+| Shell-visible data (civ picker) | `bundle.shell` |
+| Localization text | `bundle.shell` + `bundle.always` |
+| Icons | `bundle.shell` + `bundle.current` |
+| Visual remaps | `bundle.current` |
+| Imported assets | `bundle.shell` + `bundle.always` |

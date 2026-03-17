@@ -1,0 +1,359 @@
+---
+title: "Database Modding"
+description: "How to modify game data with XML and SQL — adding gameplay content, localization, icons, and colors."
+---
+
+Most Civilization VII mods don't involve writing programs. Instead, modding means adding or changing entries in a database that drives gameplay. To add a new unit, building, policy, or civilization, you create new database rows that tell the game what you're adding, what it does, and what effects it has.
+
+Text — whether gameplay descriptions or flavor text — is added the same way.
+
+## Database languages
+
+You can interact with the game database using either **XML** or **SQL**.
+
+<Note>
+  Neither language is strictly better than the other. XML is quicker for simple changes (adding one yield to one building). SQL is more powerful for bulk changes — for example, giving +5 Gold to every Wonder in a single statement instead of dozens of XML rows.
+</Note>
+
+**XML** is a markup language similar to HTML. It's easier to learn and most of the game's own files use XML, giving you lots of reference material.
+
+**SQL** (specifically SQLite) is a data manipulation language. More powerful and flexible, but has stricter syntax. You can use both in the same mod — just not in the same file.
+
+## Database scopes
+
+The game has two separate database contexts:
+
+| Scope | Used when |
+|---|---|
+| **shell** (frontend) | Main menu and age transition screens |
+| **game** (gameplay) | During active gameplay with a 3D map |
+
+These scopes have completely different schemas — you can't reuse the same XML/SQL files across both.
+
+Both scopes also have **Localization**, **Icon**, and **Color** databases with identical structures, so those files can generally be shared.
+
+## Working with Ages
+
+When modifying the **game** scope, keep in mind that the database contents differ between Antiquity, Exploration, and Modern Ages.
+
+- **Leaders** are present in all Ages.
+- **Most units** exist in only one Age (Slingers are Antiquity only).
+- **Some wonders** span multiple Ages but not all of them.
+
+<Warning>
+  You can't reference content that isn't in the database for the current Age. Always verify that what you're referencing exists in the Age you're targeting.
+</Warning>
+
+## Modifying the gameplay database
+
+This walkthrough adds two new social policies in the Antiquity Age.
+
+<Note>
+  In the database, both Policies and Traditions are called "Traditions". You'll see this reflected in table and tag names.
+</Note>
+
+### Set up the files
+
+<Steps>
+  <Step title="Create a mod with a .modinfo file">
+    See [Getting Started](/guides/official/getting-started) if you need to set one up.
+  </Step>
+
+  <Step title="Create a data folder">
+    In the same directory as your `.modinfo` file, create a folder called `data`.
+  </Step>
+
+  <Step title="Create the content file">
+    Inside `data`, create either `antiquity-traditions.xml` or `antiquity-traditions.sql`.
+  </Step>
+</Steps>
+
+### Update the .modinfo file
+
+Tell the game to load your new file by adding an `ActionGroup` with game scope and an `AgeInUse` criterion:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<Mod id="fxs-new-policies" version="1" xmlns="ModInfo">
+  <Properties>
+    <Name>Antiquity Policies</Name>
+    <Description>Adds new policies to the Antiquity Age</Description>
+    <Authors>Firaxis</Authors>
+    <AffectsSavedGames>1</AffectsSavedGames>
+  </Properties>
+  <Dependencies></Dependencies>
+  <ActionCriteria>
+    <Criteria id="antiquity-age-current">
+      <AgeInUse>AGE_ANTIQUITY</AgeInUse>
+    </Criteria>
+  </ActionCriteria>
+  <ActionGroups>
+    <ActionGroup id="antiquity-game" scope="game" criteria="antiquity-age-current">
+      <Actions>
+        <UpdateDatabase>
+          <Item>data/antiquity-traditions.xml</Item>
+        </UpdateDatabase>
+      </Actions>
+    </ActionGroup>
+  </ActionGroups>
+</Mod>
+```
+
+<Warning>
+  `.modinfo` files are only read when the game boots. If you change your `.modinfo`, you must fully exit and restart Civilization VII.
+</Warning>
+
+### Add the traditions
+
+<Tabs>
+  <Tab title="XML">
+    ```xml
+    <?xml version="1.0" encoding="utf-8"?>
+    <Database>
+      <Types>
+        <Row Type="TRADITION_FXS_CYLINDER_SEALS" Kind="KIND_TRADITION"/>
+        <Row Type="TRADITION_FXS_ORACLE_BONES" Kind="KIND_TRADITION"/>
+      </Types>
+      <Traditions>
+        <Row TraditionType="TRADITION_FXS_CYLINDER_SEALS"
+             Name="LOC_TRADITION_FXS_CYLINDER_SEALS_NAME"
+             Description="LOC_TRADITION_FXS_CYLINDER_SEALS_DESCRIPTION"/>
+        <Row TraditionType="TRADITION_FXS_ORACLE_BONES"
+             Name="LOC_TRADITION_FXS_ORACLE_BONES_NAME"
+             Description="LOC_TRADITION_FXS_ORACLE_BONES_DESCRIPTION"/>
+      </Traditions>
+      <ProgressionTreeNodeUnlocks>
+        <Row ProgressionTreeNodeType="NODE_CIVIC_AQ_MAIN_CHIEFDOM"
+             TargetKind="KIND_TRADITION"
+             TargetType="TRADITION_FXS_CYLINDER_SEALS"
+             UnlockDepth="1"/>
+        <Row ProgressionTreeNodeType="NODE_CIVIC_AQ_MAIN_CHIEFDOM"
+             TargetKind="KIND_TRADITION"
+             TargetType="TRADITION_FXS_ORACLE_BONES"
+             UnlockDepth="1"/>
+      </ProgressionTreeNodeUnlocks>
+    </Database>
+    ```
+  </Tab>
+  <Tab title="SQL">
+    ```sql
+    INSERT INTO Types
+            (Type,                              Kind)
+    VALUES  ('TRADITION_FXS_CYLINDER_SEALS',    'KIND_TRADITION'),
+            ('TRADITION_FXS_ORACLE_BONES',      'KIND_TRADITION');
+
+    INSERT INTO Traditions
+            (TraditionType,                     Name,                                       Description)
+    VALUES  ('TRADITION_FXS_CYLINDER_SEALS',    'LOC_TRADITION_FXS_CYLINDER_SEALS_NAME',    'LOC_TRADITION_FXS_CYLINDER_SEALS_DESCRIPTION'),
+            ('TRADITION_FXS_ORACLE_BONES',      'LOC_TRADITION_FXS_ORACLE_BONES_NAME',      'LOC_TRADITION_FXS_ORACLE_BONES_DESCRIPTION');
+
+    INSERT INTO ProgressionTreeNodeUnlocks
+            (ProgressionTreeNodeType,         TargetKind,       TargetType,                     UnlockDepth)
+    VALUES  ('NODE_CIVIC_AQ_MAIN_CHIEFDOM',   'KIND_TRADITION', 'TRADITION_FXS_CYLINDER_SEALS', 1),
+            ('NODE_CIVIC_AQ_MAIN_CHIEFDOM',   'KIND_TRADITION', 'TRADITION_FXS_ORACLE_BONES',   1);
+    ```
+  </Tab>
+</Tabs>
+
+### Add game effects
+
+Policies need modifiers to actually do something. Create `data/antiquity-game-effects.xml` and add this file to your `.modinfo`'s `UpdateDatabase` list:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<GameEffects xmlns="GameEffects">
+  <Modifier id="FXS_CYLINDER_SEALS_MOD_PALACE_FOOD"
+            collection="COLLECTION_OWNER"
+            effect="EFFECT_PLAYER_ADJUST_CONSTRUCTIBLE_YIELD">
+    <Argument name="YieldType">YIELD_FOOD</Argument>
+    <Argument name="Amount">2</Argument>
+    <Argument name="ConstructibleType">BUILDING_PALACE</Argument>
+  </Modifier>
+  <Modifier id="FXS_CYLINDER_SEALS_MOD_PALACE_GOLD"
+            collection="COLLECTION_OWNER"
+            effect="EFFECT_PLAYER_ADJUST_CONSTRUCTIBLE_YIELD">
+    <Argument name="YieldType">YIELD_GOLD</Argument>
+    <Argument name="Amount">3</Argument>
+    <Argument name="ConstructibleType">BUILDING_PALACE</Argument>
+    <String context="Description">LOC_TRADITION_FXS_CYLINDER_SEALS_DESCRIPTION</String>
+  </Modifier>
+  <Modifier id="FXS_ORACLE_BONES_MOD_PALACE_HAPPINESS"
+            collection="COLLECTION_OWNER"
+            effect="EFFECT_PLAYER_ADJUST_CONSTRUCTIBLE_YIELD">
+    <Argument name="YieldType">YIELD_HAPPINESS</Argument>
+    <Argument name="Amount">3</Argument>
+    <Argument name="ConstructibleType">BUILDING_PALACE</Argument>
+  </Modifier>
+  <Modifier id="FXS_ORACLE_BONES_MOD_PALACE_CULTURE"
+            collection="COLLECTION_OWNER"
+            effect="EFFECT_PLAYER_ADJUST_CONSTRUCTIBLE_YIELD">
+    <Argument name="YieldType">YIELD_CULTURE</Argument>
+    <Argument name="Amount">1</Argument>
+    <Argument name="ConstructibleType">BUILDING_PALACE</Argument>
+    <String context="Description">LOC_TRADITION_FXS_ORACLE_BONES_DESCRIPTION</String>
+  </Modifier>
+</GameEffects>
+```
+
+Then link the modifiers back to your tradition entries by adding `TraditionModifiers` rows:
+
+<Tabs>
+  <Tab title="XML">
+    Add before the closing `</Database>` tag in your traditions file:
+
+    ```xml
+    <TraditionModifiers>
+      <Row TraditionType="TRADITION_FXS_CYLINDER_SEALS" ModifierId="FXS_CYLINDER_SEALS_MOD_PALACE_FOOD"/>
+      <Row TraditionType="TRADITION_FXS_CYLINDER_SEALS" ModifierId="FXS_CYLINDER_SEALS_MOD_PALACE_GOLD"/>
+      <Row TraditionType="TRADITION_FXS_ORACLE_BONES"  ModifierId="FXS_ORACLE_BONES_MOD_PALACE_HAPPINESS"/>
+      <Row TraditionType="TRADITION_FXS_ORACLE_BONES"  ModifierId="FXS_ORACLE_BONES_MOD_PALACE_CULTURE"/>
+    </TraditionModifiers>
+    ```
+  </Tab>
+  <Tab title="SQL">
+    Add to the end of your traditions file:
+
+    ```sql
+    INSERT INTO TraditionModifiers
+            (TraditionType,                     ModifierId)
+    VALUES  ('TRADITION_FXS_CYLINDER_SEALS',    'FXS_CYLINDER_SEALS_MOD_PALACE_FOOD'),
+            ('TRADITION_FXS_CYLINDER_SEALS',    'FXS_CYLINDER_SEALS_MOD_PALACE_GOLD'),
+            ('TRADITION_FXS_ORACLE_BONES',      'FXS_ORACLE_BONES_MOD_PALACE_HAPPINESS'),
+            ('TRADITION_FXS_ORACLE_BONES',      'FXS_ORACLE_BONES_MOD_PALACE_CULTURE');
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Localization
+
+Text works via a tag lookup system. When you set `Name="LOC_TRADITION_FXS_CYLINDER_SEALS_NAME"` on a database row, the game looks up that tag in the Localization database and retrieves the text for the active language.
+
+Create a `text/` folder next to your `.modinfo` and add a `UpdateText` action to your ActionGroup:
+
+```xml
+<ActionGroups>
+  <ActionGroup id="antiquity-game" scope="game" criteria="antiquity-age-current">
+    <Actions>
+      <UpdateDatabase>
+        <Item>data/antiquity-traditions.xml</Item>
+        <Item>data/antiquity-game-effects.xml</Item>
+      </UpdateDatabase>
+      <UpdateText>
+        <Item>text/antiquity-text.xml</Item>
+      </UpdateText>
+    </Actions>
+  </ActionGroup>
+</ActionGroups>
+```
+
+<Tabs>
+  <Tab title="XML">
+    ```xml
+    <?xml version="1.0" encoding="utf-8"?>
+    <Database>
+      <LocalizedText>
+        <Row Tag="LOC_TRADITION_FXS_CYLINDER_SEALS_NAME" Language="en_US">
+          <Text>Cylinder Seals</Text>
+        </Row>
+        <Row Tag="LOC_TRADITION_FXS_CYLINDER_SEALS_DESCRIPTION" Language="en_US">
+          <Text>+2[icon:YIELD_FOOD] Food, +3[icon:YIELD_GOLD] Gold on the Palace.</Text>
+        </Row>
+        <Row Tag="LOC_TRADITION_FXS_ORACLE_BONES_NAME" Language="en_US">
+          <Text>Oracle Bones</Text>
+        </Row>
+        <Row Tag="LOC_TRADITION_FXS_ORACLE_BONES_DESCRIPTION" Language="en_US">
+          <Text>+3[icon:YIELD_HAPPINESS] Happiness, +1[icon:YIELD_CULTURE] Culture on the Palace.</Text>
+        </Row>
+      </LocalizedText>
+    </Database>
+    ```
+  </Tab>
+  <Tab title="SQL">
+    ```sql
+    INSERT OR REPLACE INTO LocalizedText (Tag, Language, Text)
+    VALUES
+      ('LOC_TRADITION_FXS_CYLINDER_SEALS_NAME',        'en_US', 'Cylinder Seals'),
+      ('LOC_TRADITION_FXS_CYLINDER_SEALS_DESCRIPTION', 'en_US', '+2[icon:YIELD_FOOD] Food, +3[icon:YIELD_GOLD] Gold on the Palace.'),
+      ('LOC_TRADITION_FXS_ORACLE_BONES_NAME',          'en_US', 'Oracle Bones'),
+      ('LOC_TRADITION_FXS_ORACLE_BONES_DESCRIPTION',   'en_US', '+3[icon:YIELD_HAPPINESS] Happiness, +1[icon:YIELD_CULTURE] Culture on the Palace.');
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  The `[icon:YIELD_FOOD]` syntax renders inline yield icons. Swap the yield type for any valid yield (e.g., `YIELD_SCIENCE`, `YIELD_INFLUENCE`).
+
+  `EnglishText` is a shorthand for `LocalizedText` with `Language="en_US"`. Use `LocalizedText` with the appropriate language code (e.g., `es_ES`) to provide translations.
+</Note>
+
+---
+
+## Icons and colors
+
+Update the Icons and Colors databases using `UpdateIcons` and `UpdateColors` actions in your `.modinfo`:
+
+```xml
+<Actions>
+  <UpdateIcons>
+    <Item>data/modded-icons.xml</Item>
+  </UpdateIcons>
+  <UpdateColors>
+    <Item>data/modded-colors.xml</Item>
+  </UpdateColors>
+</Actions>
+```
+
+**Icon definitions** point to image files imported via `ImportFiles`:
+
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Database>
+  <IconDefinitions>
+    <Row>
+      <ID>BUILDING_STAVE_CHURCH</ID>
+      <Path>fs://game/denmark/icons/building_stave_church.png</Path>
+    </Row>
+  </IconDefinitions>
+</Database>
+```
+
+**Color definitions** for player colors and UI elements:
+
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Database>
+  <PlayerColors>
+    <Row>
+      <Type>LEADER_SAPPHO</Type>
+      <Usage>Unique</Usage>
+      <PrimaryColor>COLOR_STANDARD_RED_DK</PrimaryColor>
+      <SecondaryColor>COLOR_STANDARD_WHITE_LT</SecondaryColor>
+    </Row>
+  </PlayerColors>
+  <Colors>
+    <Row>
+      <Type>COLOR_MY_NEW_COLOR</Type>
+      <Color>229,117,116,255</Color>
+      <Color3D>229,117,116,255</Color3D>
+    </Row>
+  </Colors>
+</Database>
+```
+
+<Note>
+  `Color` entries are used for UI controls. `Color3D` entries apply to team color on 3D in-game models. Existing player colors are in `playerstandardcolors.xml`.
+</Note>
+
+---
+
+## Troubleshooting
+
+<Warning>
+  Something not working? Check the `Database.log` file in your `Logs` folder (next to `Mods`). It reports syntax errors and missing references.
+
+  Common culprits: unclosed XML tags, mismatched parentheses or semicolons in SQL, and typos in type names.
+</Warning>
+
+**Where to go next:** Learn about the Modifier System in depth — [Modifier System](/guides/official/modifier-system).
