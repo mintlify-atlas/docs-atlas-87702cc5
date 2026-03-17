@@ -80,7 +80,7 @@ my-mod/
 **`src/civilizations/dacia.ts`:**
 
 ```typescript
-import { CivilizationBuilder, ACTION_GROUP_BUNDLE } from "civ7-modding-tools";
+import { CivilizationBuilder, ACTION_GROUP_BUNDLE } from "@mateicanavra/civ7-sdk";
 
 export function createDacianCivilization() {
   return new CivilizationBuilder({
@@ -97,7 +97,7 @@ export function createDacianCivilization() {
 **`src/units/falx-warrior.ts`:**
 
 ```typescript
-import { UnitBuilder, ACTION_GROUP_BUNDLE, UNIT_CLASS } from "civ7-modding-tools";
+import { UnitBuilder, ACTION_GROUP_BUNDLE, UNIT_CLASS } from "@mateicanavra/civ7-sdk";
 
 export function createFalxWarrior() {
   return new UnitBuilder({
@@ -114,7 +114,7 @@ export function createFalxWarrior() {
 **`build.ts`:**
 
 ```typescript
-import { Mod } from "civ7-modding-tools";
+import { Mod } from "@mateicanavra/civ7-sdk";
 import { createDacianCivilization } from "./src/civilizations/dacia";
 import { createFalxWarrior } from "./src/units/falx-warrior";
 import { createMountainScout } from "./src/units/mountain-scout";
@@ -188,7 +188,7 @@ import {
   TypeNode,
   UnitNode,
   XmlFile
-} from "civ7-modding-tools";
+} from "@mateicanavra/civ7-sdk";
 
 const mod = new Mod({ id: "manual-node-mod", version: "1.0" });
 
@@ -237,7 +237,7 @@ mod.build("./dist");
 Extend the built-in tools with your own builder classes:
 
 ```typescript
-import { BaseBuilder, ACTION_GROUP_BUNDLE, DatabaseNode, TypeNode, XmlFile, KIND, ACTION_GROUP_ACTION } from "civ7-modding-tools";
+import { BaseBuilder, ACTION_GROUP_BUNDLE, DatabaseNode, TypeNode, XmlFile, KIND, ACTION_GROUP_ACTION } from "@mateicanavra/civ7-sdk";
 
 export class ReligionBuilder extends BaseBuilder {
   religion: { type: string; name: string };

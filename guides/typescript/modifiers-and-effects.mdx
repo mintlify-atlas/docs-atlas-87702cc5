@@ -29,7 +29,7 @@ import {
   EFFECT,
   Mod,
   ModifierBuilder
-} from "civ7-modding-tools";
+} from "@mateicanavra/civ7-sdk";
 
 const mod = new Mod({ id: "my-modifier-mod", version: "1.0" });
 
@@ -53,7 +53,7 @@ mod.add([combatBonus]).build("./dist");
 Add conditions to target the effect more precisely:
 
 ```typescript
-import { REQUIREMENT, UNIT_CLASS } from "civ7-modding-tools";
+import { REQUIREMENT, UNIT_CLASS } from "@mateicanavra/civ7-sdk";
 
 // +5 Combat Strength for Melee units when defending in hills
 const hillDefenseBonus = new ModifierBuilder({
@@ -79,7 +79,7 @@ const hillDefenseBonus = new ModifierBuilder({
 ## Common collections
 
 ```typescript
-import { COLLECTION } from "civ7-modding-tools";
+import { COLLECTION } from "@mateicanavra/civ7-sdk";
 
 // Unit collections
 COLLECTION.PLAYER_UNITS     // All units belonging to the player
@@ -101,7 +101,7 @@ COLLECTION.PLAYER_PLOTS     // All plots controlled by the player
 ## Common effects
 
 ```typescript
-import { EFFECT } from "civ7-modding-tools";
+import { EFFECT } from "@mateicanavra/civ7-sdk";
 
 // Unit effects
 EFFECT.UNIT_ADJUST_COMBAT_STRENGTH        // Change combat strength
@@ -125,7 +125,7 @@ EFFECT.PLAYER_REVEAL_CULTURE_TREE         // Reveal a civic tree
 ## Common requirements
 
 ```typescript
-import { REQUIREMENT } from "civ7-modding-tools";
+import { REQUIREMENT } from "@mateicanavra/civ7-sdk";
 
 // Unit requirements
 REQUIREMENT.UNIT_TAG_MATCHES           // Unit has a specific type tag

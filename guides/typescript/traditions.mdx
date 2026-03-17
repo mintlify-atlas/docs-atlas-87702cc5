@@ -15,7 +15,7 @@ import {
   TraditionBuilder,
   COLLECTION,
   EFFECT
-} from "civ7-modding-tools";
+} from "@mateicanavra/civ7-sdk";
 
 const mod = new Mod({ id: "my-tradition-mod", version: "1.0" });
 
@@ -204,27 +204,34 @@ const wartimeBonus = new ModifierBuilder({
 warPreparation.bind([wartimeBonus]);
 ```
 
-## Tradition groups
+## Adding multiple traditions to a mod
 
-Organize related traditions into groups:
+Organize related traditions by simply adding them all to the mod together. Each `TraditionBuilder` is independent and generates its own files:
 
 ```typescript
-import { TraditionGroupBuilder } from "civ7-modding-tools";
+import { Mod, TraditionBuilder, ModifierBuilder, ACTION_GROUP_BUNDLE, COLLECTION, EFFECT } from "@mateicanavra/civ7-sdk";
 
-const militaryTraditions = new TraditionGroupBuilder({
+const mod = new Mod({ id: 'my-traditions-mod', version: '1.0.0' });
+
+const mountaintopWatch = new TraditionBuilder({
   actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
-  traditionGroup: { traditionGroupType: "TRADITION_GROUP_MILITARY" },
-  localizations: [{
-    name: "Military Traditions",
-    description: "Traditions focused on warfare and martial prowess."
-  }]
+  tradition: { traditionType: 'TRADITION_MOUNTAINTOP_WATCH' },
+  localizations: [{ name: 'Mountaintop Watch', description: '+5 Sight for all units.' }]
 });
 
-// Bind traditions to the group
-militaryTraditions.bind([mountaintopWatch, warriorCult]);
+const warriorCult = new TraditionBuilder({
+  actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
+  tradition: { traditionType: 'TRADITION_WARRIOR_CULT' },
+  localizations: [{ name: 'Warrior Cult', description: '+10% Combat Strength.' }]
+});
 
-mod.add([militaryTraditions, mountaintopWatch, warriorCult]).build("./dist");
+// Add both traditions to the mod
+mod.add([mountaintopWatch, warriorCult]).build("./dist");
 ```
+
+<Note>
+There is no `TraditionGroupBuilder` in the SDK. Traditions are added directly to the mod and the game organizes them via their XML type data.
+</Note>
 
 ## Best practices
 

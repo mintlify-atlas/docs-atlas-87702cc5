@@ -73,13 +73,28 @@ Before you start, make sure you have:
   </Step>
 
   <Step title="Install the SDK in your mod project">
-    Create a new directory for your mod (or use an existing one) and install the SDK:
+    Create a new directory for your mod (or use an existing one), configure the GitHub Package Registry, then install the SDK:
 
     ```bash
     mkdir my-first-mod && cd my-first-mod
     bun init -y
+    ```
+
+    Add the registry to `.npmrc`:
+
+    ```bash .npmrc
+    @mateicanavra:registry=https://npm.pkg.github.com/
+    ```
+
+    Install the SDK:
+
+    ```bash
     bun add @mateicanavra/civ7-sdk
     ```
+
+    <Note>
+      GitHub Package Registry requires a personal access token with `read:packages` scope. You can also use the SDK directly from inside the monorepo where the workspace already resolves `@mateicanavra/civ7-sdk` locally without a token.
+    </Note>
   </Step>
 
   <Step title="Create your first mod">
@@ -127,9 +142,11 @@ Before you start, make sure you have:
     output/
     ├── my-first-mod.modinfo
     └── units/
-        └── UNIT_CUSTOM_SCOUT/
-            ├── database.xml
-            └── localizations.xml
+        └── unit-custom-scout/
+            ├── current.xml        ← unit rows, stats, costs, tags
+            ├── visual-remap.xml   ← visual remap (UNIT_ARMY_COMMANDER model)
+            ├── localization.xml   ← display name and description
+            └── icons.xml          ← icon definition
     ```
 
     Copy the `output/` folder into your Civilization VII mods directory to load it in-game.

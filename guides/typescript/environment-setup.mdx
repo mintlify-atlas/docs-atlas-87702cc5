@@ -3,7 +3,7 @@ title: "Environment Setup"
 description: "Install and configure the TypeScript modding tools for Civilization VII."
 ---
 
-This guide sets up your development environment for TypeScript-based Civ VII modding using the community `civ7-modding-tools` package.
+This guide sets up your development environment for TypeScript-based Civ VII modding using the `@mateicanavra/civ7-sdk` package.
 
 ## Prerequisites
 
@@ -29,7 +29,7 @@ This guide sets up your development environment for TypeScript-based Civ VII mod
 
   <Step title="Install the modding tools">
     ```bash
-    bun add civ7-modding-tools
+    bun add @mateicanavra/civ7-sdk
     bun add -d typescript
     ```
   </Step>
@@ -50,26 +50,26 @@ This guide sets up your development environment for TypeScript-based Civ VII mod
   </Step>
 </Steps>
 
-## Install from GitHub
+## Install from source (monorepo)
 
-<Accordion title="Install from source" icon="github">
+<Accordion title="Work directly in the monorepo" icon="github">
+  To use examples from the playground or contribute to the tools, clone the full monorepo:
+
   <Steps>
     <Step title="Clone the repository">
       ```bash
-      git clone https://github.com/izica/civ7-modding-tools
+      git clone https://github.com/mateicanavra/civ7-modding-tools
       cd civ7-modding-tools
       ```
     </Step>
     <Step title="Install dependencies">
       ```bash
-      bun install
+      bun install --frozen-lockfile
+      bun run link:cli
       ```
     </Step>
-    <Step title="Copy examples as starting point">
-      ```bash
-      mkdir -p src
-      cp examples/* src/
-      ```
+    <Step title="Explore the playground">
+      The `apps/playground/` directory contains working example mods you can run and modify.
     </Step>
   </Steps>
 </Accordion>
@@ -94,7 +94,7 @@ my-civ7-mod/
 Create `build.ts` in your project root:
 
 ```typescript
-import { Mod } from "civ7-modding-tools";
+import { Mod } from "@mateicanavra/civ7-sdk";
 
 // Create the mod
 const mod = new Mod({
@@ -133,7 +133,7 @@ Most of the time you only work with builders. The node and file layers are expos
 
 ## Next steps
 
-<Columns cols={2}>
+<CardGroup cols={2}>
   <Card title="Creating Units" icon="sword" href="/guides/typescript/creating-units">
     Build your first custom unit.
   </Card>
@@ -146,4 +146,4 @@ Most of the time you only work with builders. The node and file layers are expos
   <Card title="Modifiers & Effects" icon="sparkles" href="/guides/typescript/modifiers-and-effects">
     Implement gameplay effects.
   </Card>
-</Columns>
+</CardGroup>

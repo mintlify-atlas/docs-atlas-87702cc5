@@ -33,7 +33,7 @@ This guide walks you through setting up a Civ VII modding project using the comm
 
   <Step title="Install the modding tools">
     ```bash
-    bun add civ7-modding-tools
+    bun add @mateicanavra/civ7-sdk
     bun add -d typescript
     ```
   </Step>
@@ -74,7 +74,7 @@ my-civ7-mod/
 Create `build.ts` in your project root:
 
 ```typescript
-import { Mod } from "civ7-modding-tools";
+import { Mod } from "@mateicanavra/civ7-sdk";
 
 // Create a new mod
 const mod = new Mod({
@@ -112,7 +112,7 @@ The TypeScript tools generate all the XML and `.modinfo` from your TypeScript de
 
 ## Where to go next
 
-<Columns cols={2}>
+<CardGroup cols={2}>
   <Card title="Modding Architecture" icon="sitemap" href="/guides/community/modding-architecture">
     Understand how the game's module system works and how mods fit into it.
   </Card>
@@ -125,4 +125,4 @@ The TypeScript tools generate all the XML and `.modinfo` from your TypeScript de
   <Card title="TypeScript: Creating Units" icon="sword" href="/guides/typescript/creating-units">
     Implement your first custom unit with the SDK builders.
   </Card>
-</Columns>
+</CardGroup>

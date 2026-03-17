@@ -21,7 +21,7 @@ import {
   EFFECT,
   YIELD,
   AGE
-} from "civ7-modding-tools";
+} from "@mateicanavra/civ7-sdk";
 
 const mod = new Mod({ id: "my-civics-mod", version: "1.0" });
 
@@ -162,7 +162,7 @@ mod.add([technologyTree, node1, node2, node3, node4, node5]).build("./dist");
 Nodes can unlock units, buildings, or traditions when researched:
 
 ```typescript
-import { UnitBuilder, UNIT_CLASS, REQUIREMENT } from "civ7-modding-tools";
+import { UnitBuilder, UNIT_CLASS, REQUIREMENT } from "@mateicanavra/civ7-sdk";
 
 // Create the unit to unlock
 const falxWarrior = new UnitBuilder({
@@ -218,33 +218,23 @@ const dacianCivics = new ProgressionTreeBuilder({ /* ... */ });
 dacia.bind([dacianCivics]);
 ```
 
-## Tree visuals
+## Node positions
 
-Control node positions in the tree UI:
+Node visual positions (x/y coordinates in the tree UI) are set directly on `ProgressionTreeNodeBuilder` via the `progressionTreeNode` options. There is no separate `ProgressionTreeVisualsBuilder` in the SDK.
 
 ```typescript
-import { ProgressionTreeVisualsBuilder } from "civ7-modding-tools";
+import { ProgressionTreeNodeBuilder, ACTION_GROUP_BUNDLE, AGE } from "@mateicanavra/civ7-sdk";
 
-const treeVisuals = new ProgressionTreeVisualsBuilder({
+const tribalUnity = new ProgressionTreeNodeBuilder({
   actionGroupBundle: ACTION_GROUP_BUNDLE.AGE_ANTIQUITY,
-  progressionTreeVisuals: {
-    progressionTreeType: dacianCivics.progressionTree.progressionTreeType,
+  progressionTreeNode: {
+    progressionTreeNodeType: 'NODE_CIVIC_AQ_TRIBAL_UNITY',
+    ageType: AGE.ANTIQUITY,
+    column: 1,
+    row: 0,
   },
-  nodeVisuals: [
-    {
-      progressionTreeNodeType: tribalUnity.progressionTreeNode.progressionTreeNodeType,
-      x: 100,
-      y: 100
-    },
-    {
-      progressionTreeNodeType: warCouncil.progressionTreeNode.progressionTreeNodeType,
-      x: 250,
-      y: 100
-    }
-  ]
+  localizations: [{ name: 'Tribal Unity', description: 'Unlocks the Tribal Unity tradition.' }]
 });
-
-mod.add([dacianCivics, tribalUnity, warCouncil, treeVisuals]).build("./dist");
 ```
 
 ## Best practices

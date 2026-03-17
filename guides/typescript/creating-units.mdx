@@ -16,7 +16,7 @@ import {
   UNIT,
   UNIT_CLASS,
   UnitBuilder
-} from "civ7-modding-tools";
+} from "@mateicanavra/civ7-sdk";
 
 const mod = new Mod({
   id: "my-unit-mod",
@@ -110,7 +110,7 @@ const advancedUnit = new UnitBuilder({
 To use a custom icon instead of the default:
 
 ```typescript
-import { ACTION_GROUP_BUNDLE, ImportFileBuilder, UnitBuilder, Mod } from "civ7-modding-tools";
+import { ACTION_GROUP_BUNDLE, ImportFileBuilder, UnitBuilder, Mod } from "@mateicanavra/civ7-sdk";
 
 const mod = new Mod({ id: "my-unit-mod", version: "1.0" });
 

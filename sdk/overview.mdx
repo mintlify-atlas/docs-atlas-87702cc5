@@ -20,9 +20,21 @@ The SDK exposes two layers. You can use either one, or mix them in the same mod.
 
 ## Installation
 
+The SDK is published to the GitHub Package Registry. Before installing, add the registry entry to your project's `.npmrc`:
+
+```bash .npmrc
+@mateicanavra:registry=https://npm.pkg.github.com/
+```
+
+Then install:
+
 ```bash
 bun add @mateicanavra/civ7-sdk
 ```
+
+<Note>
+You need a GitHub personal access token with `read:packages` scope to install from the GitHub Package Registry. Set it as `NPM_TOKEN` or configure it in your `.npmrc`. See [GitHub docs](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry#authenticating-to-github-packages) for details.
+</Note>
 
 ## Quick example
 
@@ -60,7 +72,7 @@ Running this script writes `my-mod/my-first-mod.modinfo` plus all required XML f
 
 <CardGroup cols={2}>
   <Card title="Builders" icon="wrench" href="/sdk/builders/unit-builder">
-    `UnitBuilder`, `CivilizationBuilder`, `ConstructibleBuilder`, `ProgressionTreeBuilder`, `ModifierBuilder`, `TraditionBuilder`, `UniqueQuarterBuilder`, `LeaderUnlockBuilder`, `ImportFileBuilder`
+    `UnitBuilder`, `CivilizationBuilder`, `CivilizationUnlockBuilder`, `ConstructibleBuilder`, `ProgressionTreeBuilder`, `ProgressionTreeNodeBuilder`, `ModifierBuilder`, `TraditionBuilder`, `UniqueQuarterBuilder`, `LeaderUnlockBuilder`, `AbilityBuilder`, `ImportFileBuilder`, `UnlockBuilder`
   </Card>
   <Card title="Low-level API" icon="file-code" href="/sdk/low-level/nodes">
     XML nodes (`DatabaseNode`, `UnitNode`, `TypeNode`, …), `XmlFile`, `BaseFile`, `ActionGroupBundle`
